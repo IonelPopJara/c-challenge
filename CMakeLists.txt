@@ -15,11 +15,6 @@ if(WIN32)
     set(RAYLIB_LIBS_PATH "${PROJECT_SOURCE_DIR}/external/raylib/src")
     set(RAYLIB_LIB "${RAYLIB_LIBS_PATH}/libraylib.a")
     set(SYSTEM_LIBS opengl32 gdi32 winmm)
-
-    # Find SDL2 on Windows
-    find_package(SDL2 REQUIRED)
-    include_directories(${SDL2_INCLUDE_DIRS})
-    set(SYSTEM_LIBS ${SYSTEM_LIBS} ${SDL2_LIBRARIES})
 elseif(APPLE)
     # macOS specific settings
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DPLATFORM_DESKTOP -DGRAPHICS_API_OPENGL_33")
