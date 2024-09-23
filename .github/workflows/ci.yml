@@ -30,15 +30,16 @@ jobs:
       shell: bash
     
     - name: Install dependencies on Windows
+      if: ${{ runner.os == 'Windows' }}
       run: |
-        if [ ${{ runner.os }} == 'Windows' ]; then
+        if ($env:RUNNER_OS -eq 'Windows') {
           Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
           Invoke-RestMethod -Uri https://get.scoop.sh | Invoke-Expression
-          scoop install main/gcc
-          scoop install main/make
-          scoop install main/cmake
-          scoop install main/mingw
-        fi
+          scoop install gcc
+          scoop install make
+          scoop install cmake
+          scoop install mingw
+        }
       shell: pwsh
 
     - name: Build raylib
