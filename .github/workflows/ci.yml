@@ -49,7 +49,7 @@ jobs:
     - name: Configure CMake
       run: |
         if [ ${{ runner.os }} == 'Windows' ]; then
-          cmake -B $GITHUB_WORKSPACE/build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} -G "Visual Studio 17 2022"
+          cmake -B $GITHUB_WORKSPACE/build -DCMAKE_BUILD_TYPE=%BUILD_TYPE%
         else
           cmake -B ${{ github.workspace }}/build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
         fi
@@ -58,74 +58,8 @@ jobs:
     - name: Build
       run: |
         if [ ${{ runner.os }} == 'Windows' ]; then
-          cmake --build $GITHUB_WORKSPACE/build --config ${BUILD_TYPE}
+          cmake --build $GITHUB_WORKSPACE/build --config %BUILD_TYPE%
         else
-          cmake --build ${{ github.workspace }}/build --config ${BUILD_TYPE}
-        fi
-      shell: bash
-
-
-
-name: CMake on a single platform
-
-on:
-  push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
-
-env:
-  BUILD_TYPE: Release
-
-jobs:
-  build:
-    runs-on: ${{ matrix.os }}
-
-    strategy:
-      matrix:
-        os: [ ubuntu-latest, macos-latest, windows-latest ]
-
-    steps:
-    - uses: actions/checkout@v4
-
-    - name: Install dependencies
-      run: |
-        if [ ${{ runner.os }} == 'Linux' ]; then
-          sudo apt-get update && sudo apt-get install -y libsdl2-dev
-        elif [ ${{ runner.os }} == 'macOS' ]; then
-          brew install sdl2
-        fi
-      shell: bash
-
-    - name: Build raylib
-      run: |
-        if [ ${{ runner.os }} == 'Windows' ]; then
-          cd external/raylib
-          mkdir -p build
-          cd build
-          cmake .. -G "MinGW Makefiles"
-          cmake --build . --config Release
-        else
-          cd external/raylib/src
-          make clean
-          make PLATFORM=PLATFORM_DESKTOP_SDL
-        fi
-      shell: bash
-
-    - name: Configure CMake
-      run: |
-        if [ ${{ runner.os }} == 'Windows' ]; then
-          cmake -B $GITHUB_WORKSPACE/build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} -G "Visual Studio 17 2022"
-        else
-          cmake -B ${{ github.workspace }}/build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
-        fi
-      shell: bash
-
-    - name: Build
-      run: |
-        if [ ${{ runner.os }} == 'Windows' ]; then
-          cmake --build $GITHUB_WORKSPACE/build --config ${BUILD_TYPE}
-        else
-          cmake --build ${{ github.workspace }}/build --config ${BUILD_TYPE}
+          cmake --build ${{ github.workspace }}/build --config ${{ env.BUILD_TYPE }}
         fi
       shell: bash
