@@ -19,13 +19,19 @@ jobs:
     - name: Install SDL2
       run: sudo apt-get update && sudo apt-get install -y libsdl2-dev
 
+    - name: Build raylib
+      run: |
+        cd external/raylib/src
+        sudo make clean
+        sudo make PLATFORM=PLATFORM_DESKTOP_SDL
+
     - name: Configure CMake
       run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
 
     - name: Build
       # Build your program with the given configuration
       run: | 
-        ls -R external/raylib/src/
+        ls -R external/raylib/src/ | grep "libraylib"
         cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
 
     - name: Test

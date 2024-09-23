@@ -6,7 +6,7 @@ int main(void) {
     while (!WindowShouldClose()) {
         BeginDrawing();
         ClearBackground(BLACK);
-        DrawText("Welcome to the hacktoberfest challenge!!", 190, 200, 20, LIGHTGRAY);
+        DrawText("Welcome to the hacktoberfest challenge :)", 190, 200, 20, LIGHTGRAY);
         EndDrawing();
     }
 
