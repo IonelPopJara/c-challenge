@@ -71,7 +71,7 @@ jobs:
     - name: Build
       run: |
         if [ ${{ runner.os }} == 'Windows' ]; then
-          cmake --build $GITHUB_WORKSPACE/build --config ${BUILD_TYPE} -- /verbosity:diag
+          cmake --build $GITHUB_WORKSPACE/build --config ${BUILD_TYPE}
         else
           cmake --build ${{ github.workspace }}/build --config ${BUILD_TYPE}
         fi
