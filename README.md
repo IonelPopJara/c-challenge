@@ -127,9 +127,16 @@ mingw32-make
 
 After building the project, you can run the executable generated in the `build` directory.
 
+**Linux and macOS**
 ```bash
 # From the build directory
 cd build
-./hacktober.out # Linux and macOS
-./hacktober.exe # Windows
+./hacktober.out
+```
+
+**Windows**
+```powershell
+# From the build directory
+cd build
+./hacktober.exe
 ```
