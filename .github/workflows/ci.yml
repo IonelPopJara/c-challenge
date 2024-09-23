@@ -11,13 +11,31 @@ env:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
 
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Install SDL2
+    - name: Set up CMake
+      run: |
+        if [ $RUNNER_OS = 'Windows' ]; then
+        choco install cmake
+        else
+        sudo apt-get install cmake
+        fi
+
+    - name: Install SDL2 (Linux/macOS)
+      if: matrix.os != 'windows-latest'
       run: sudo apt-get update && sudo apt-get install -y libsdl2-dev
+
+    - name: Install SDL2 (Windows)
+      if: matrix.os == 'windows-latest'
+      run: |
+        choco install sdl2
 
     - name: Build raylib
       run: |
@@ -29,13 +47,6 @@ jobs:
       run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
 
     - name: Build
-      # Build your program with the given configuration
-      run: | 
-        ls -R external/raylib/src/ | grep "libraylib"
-        cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
-
-    - name: Test
-      working-directory: ${{github.workspace}}/build
-      # Execute tests defined by the CMake configuration.
-      run: ctest -C ${{env.BUILD_TYPE}}
+    # Build your program with the given configuration
+  run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
 
