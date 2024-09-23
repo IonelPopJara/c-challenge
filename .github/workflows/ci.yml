@@ -20,13 +20,18 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - name: Install dependencies
+    - name: Install dependencies on Linux and macOS
       run: |
         if [ ${{ runner.os }} == 'Linux' ]; then
           sudo apt-get update && sudo apt-get install -y libsdl2-dev
         elif [ ${{ runner.os }} == 'macOS' ]; then
           brew install sdl2
-        elif [ ${{ runner.os }} == 'Windows' ]; then
+        fi
+      shell: bash
+    
+    - name: Install dependencies on Windows
+      run: |
+        if [ ${{ runner.os }} == 'Windows' ]; then
           Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
           Invoke-RestMethod -Uri https://get.scoop.sh | Invoke-Expression
           scoop install main/gcc
@@ -34,7 +39,7 @@ jobs:
           scoop install main/cmake
           scoop install main/mingw
         fi
-      shell: bash
+      shell: pwsh
 
     - name: Build raylib
       run: |
