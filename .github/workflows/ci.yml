@@ -20,19 +20,46 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - name: Install SDL2
-      run: sudo apt-get update && sudo apt-get install -y libsdl2-dev
+    - name: Install dependencies
+      run: |
+        if [ ${{ runner.os }} == 'Linux' ]; then
+          sudo apt-get update && sudo apt-get install -y libsdl2-dev
+        elif [ ${{ runner.os }} == 'macOS' ]; then
+          brew install sdl2
+        elif [ ${{ runner.os }} == 'Windows' ]; then
+          choco install sdl2
+        fi
 
     - name: Build raylib
       run: |
-        cd external/raylib/src
-        sudo make clean
-        sudo make PLATFORM=PLATFORM_DESKTOP_SDL
+        if [ ${{ runner.os }} == 'Linux' ]; then
+          cd external/raylib/src
+          sudo make clean
+          sudo make PLATFORM=PLATFORM_DESKTOP_SDL
+        elif [ ${{ runner.os }} == 'macOS' ]; then
+          cd external/raylib/src
+          make clean
+          make PLATFORM=PLATFORM_DESKTOP_SDL
+        elif [ ${{ runner.os }} == 'Windows' ]; then
+          cd external/raylib/src
+          mingw32-make clean
+          mingw32-make PLATFORM=PLATFORM_DESKTOP_SDL
+        fi
 
     - name: Configure CMake
-      run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
+      run: |
+        if [ ${{ runner.os }} == 'Windows' ]; then
+          cmake -B %GITHUB_WORKSPACE%/build -DCMAKE_BUILD_TYPE=%BUILD_TYPE%
+        else
+          cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
+        fi
 
     - name: Build
       # Build your program with the given configuration
-      run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
+      run: |
+        if [ ${{ runner.os }} == 'Windows' ]; then
+          cmake --build %GITHUB_WORKSPACE%/build --config %BUILD_TYPE%
+        else
+          cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
+        fi
 
