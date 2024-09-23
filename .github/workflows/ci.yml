@@ -26,8 +26,6 @@ jobs:
           sudo apt-get update && sudo apt-get install -y libsdl2-dev
         elif [ ${{ runner.os }} == 'macOS' ]; then
           brew install sdl2
-        elif [ ${{ runner.os }} == 'Windows' ]; then
-          choco install sdl2
         fi
       shell: bash
 
@@ -44,7 +42,7 @@ jobs:
         elif [ ${{ runner.os }} == 'Windows' ]; then
           cd external/raylib/src
           mingw32-make clean
-          mingw32-make PLATFORM=PLATFORM_DESKTOP_SDL
+          mingw32-make PLATFORM=PLATFORM_DESKTOP
         fi
       shell: bash
 
