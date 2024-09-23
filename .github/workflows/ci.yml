@@ -29,6 +29,7 @@ jobs:
         elif [ ${{ runner.os }} == 'Windows' ]; then
           choco install sdl2
         fi
+      shell: bash
 
     - name: Build raylib
       run: |
@@ -45,6 +46,7 @@ jobs:
           mingw32-make clean
           mingw32-make PLATFORM=PLATFORM_DESKTOP_SDL
         fi
+      shell: bash
 
     - name: Configure CMake
       run: |
@@ -53,6 +55,7 @@ jobs:
         else
           cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
         fi
+      shell: bash
 
     - name: Build
       # Build your program with the given configuration
@@ -62,4 +65,5 @@ jobs:
         else
           cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
         fi
+      shell: bash
 
