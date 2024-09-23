@@ -11,6 +11,8 @@ Before setting up the project, ensure you have the following tools installed:
 - C Compiler (e.g., GCC)
 - CMake (for building the project)
 - Make (for building dependencies)
+- MinGW (for Windows users)
+- SDL2 (for graphics) (Linux and macOS only)
   
 #### Windows
 
@@ -43,6 +45,8 @@ On Linux, you can install the required tools using the package manager of your d
 sudo apt install gcc make cmake
 # Raylib dependencies
 sudo apt install libasound2-dev libx11-dev libxrandr-dev libxi-dev libgl1-mesa-dev libglu1-mesa-dev libxcursor-dev libxinerama-dev libwayland-dev libxkbcommon-dev
+# SDL2
+sudo apt install libsdl2-dev
 ```
 
 **Fedora**
@@ -51,6 +55,8 @@ sudo apt install libasound2-dev libx11-dev libxrandr-dev libxi-dev libgl1-mesa-d
 sudo dnf install gcc make cmake
 # Raylib dependencies
 sudo dnf install alsa-lib-devel mesa-libGL-devel libX11-devel libXrandr-devel libXi-devel libXcursor-devel libXinerama-devel libatomic
+# SDL2
+sudo dnf install SDL2-devel
 ```
 
 **Arch**
@@ -59,6 +65,8 @@ sudo dnf install alsa-lib-devel mesa-libGL-devel libX11-devel libXrandr-devel li
 sudo pacman -S gcc make cmake
 # Raylib dependencies
 sudo pacman -S alsa-lib mesa libx11 libxrandr libxi libxcursor libxinerama
+# SDL2
+sudo pacman -S sdl2
 ```
 
 #### macOS
@@ -70,6 +78,7 @@ On macOS, you can install the required tools using Homebrew.
 ```bash
 xcode-select --install
 brew install gcc make cmake
+brew install sdl2
 ```
 
 ### Building the project
