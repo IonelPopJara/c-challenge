@@ -62,7 +62,7 @@ jobs:
     - name: Configure CMake
       run: |
         if [ ${{ runner.os }} == 'Windows' ]; then
-          cmake -B $GITHUB_WORKSPACE/build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} -G "Visual Studio 17 2022"
+          cmake -B $GITHUB_WORKSPACE/build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} -G "MinGW Makefiles"
         else
           cmake -B ${{ github.workspace }}/build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
         fi
@@ -71,7 +71,7 @@ jobs:
     - name: Build
       run: |
         if [ ${{ runner.os }} == 'Windows' ]; then
-          cmake --build $GITHUB_WORKSPACE/build --config ${BUILD_TYPE}
+          cmake --build $GITHUB_WORKSPACE/build --config ${BUILD_TYPE} -- /verbosity:diag
         else
           cmake --build ${{ github.workspace }}/build --config ${BUILD_TYPE}
         fi
