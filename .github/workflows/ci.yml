@@ -49,7 +49,7 @@ jobs:
     - name: Configure CMake
       run: |
         if [ ${{ runner.os }} == 'Windows' ]; then
-          cmake -B $GITHUB_WORKSPACE/build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
+          cmake -B $GITHUB_WORKSPACE/build -DCMAKE_BUILD_TYPE=%BUILD_TYPE%
         else
           cmake -B ${{ github.workspace }}/build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
         fi
@@ -58,8 +58,8 @@ jobs:
     - name: Build
       run: |
         if [ ${{ runner.os }} == 'Windows' ]; then
-          cmake --build $GITHUB_WORKSPACE/build --config ${BUILD_TYPE}
+          cmake --build $GITHUB_WORKSPACE/build --config %BUILD_TYPE%
         else
           cmake --build ${{ github.workspace }}/build --config ${{ env.BUILD_TYPE }}
         fi
-      shell: bash
+      shell: ba

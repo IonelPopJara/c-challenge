@@ -10,13 +10,11 @@ set(EXECUTABLE_NAME hacktober)
 
 # Set platform-specific options
 if(WIN32)
+    # Windows specific settings
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DPLATFORM_DESKTOP -DGRAPHICS_API_OPENGL_33")
     set(RAYLIB_LIBS_PATH "${PROJECT_SOURCE_DIR}/external/raylib/src")
     set(RAYLIB_LIB "${RAYLIB_LIBS_PATH}/libraylib.a")
     set(SYSTEM_LIBS opengl32 gdi32 winmm)
-
-    # Additional libraries for MinGW
-    set(MINGW_LIBS ${MINGW_LIBS} ${CMAKE_DL_LIBS})
 elseif(APPLE)
     # macOS specific settings
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DPLATFORM_DESKTOP -DGRAPHICS_API_OPENGL_33")
@@ -48,4 +46,4 @@ include_directories(${PROJECT_SOURCE_DIR}/external/raylib/src)
 add_executable(${EXECUTABLE_NAME} src/main.c)
 
 # Link libraries
-target_link_libraries(${executable_name} ${raylib_lib} ${system_libs})
+target_link_libraries(${EXECUTABLE_NAME} ${RAYLIB_LIB} ${SYSTEM_LIBS})
