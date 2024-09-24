@@ -98,7 +98,16 @@ git checkout -b my-username # Create a new branch
 git commit -m "Add something"
 ```
 
-### 6. Push Changes
+### 6. Add username to the README
+
+- Don't forget to add your username to the [Contributors](./README.md#contributors) section.
+- After that commit the changes:
+
+```bash
+git commit -m "Update README.md" - m "Add my-username to the contributors list"
+```
+
+### 7. Push Changes
 
 -   Once you're done making changes, push them to your fork.
 
@@ -106,11 +115,13 @@ git commit -m "Add something"
 git push origin my-username # Push changes to your fork
 ```
 
-### 7. Create a Pull Request
+### 8. Create a Pull Request
 
 -   Go to your fork on GitHub and create a pull request to the `main` branch of the original repository. Add a title and a description to your pull request, and submit it.
 - Wait for maintainers to review your code and merge it.
--   After your PR is merged, you will be credited as a contributor on the project!
+
+### 9. AFter PR is Merged
+-    you will be credited as a contributor on the project!
 
 ## Overview of this document
 
