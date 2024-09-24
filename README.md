@@ -6,9 +6,7 @@ In this challenge, a group of developers will collaborate to create software wit
 
 The project will be coded in C and will use the Raylib library for graphics. The software can be a game, a utility, or anything else that the developers can come up with. There are no restrictions on what it should do, as long as it follows basic regulations such as no harmful code, no hate speech, etc.
 
-`//TODO: Add tuhkis username`
-
-This idea was proposed by [Tuhkis]() on the Mults' Discord server.
+This idea was proposed by [Tuhkis](https://github.com/Tuhkis) on the Mults' Discord server.
 
 ## Rules
 
