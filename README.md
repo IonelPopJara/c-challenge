@@ -1,7 +1,16 @@
-# c-challenge
+# First Mults' Discord Hacktoberfest Challenge
+~~I need an actual name for the project~~
 
-TODO: Write a proper description and give credit to Tuhkis.
-A group of developers will collaborate to create software without any form of communication.
+In this challenge, a group of developers will collaborate to create software without any form of communication. Each developer will get 48 hours to make changes to the codebase, once the time is up, the next developer will continue from where the previous developer left off.
+
+The project will be coded in C and will use the Raylib library for graphics. The software can be a game, a utility, or anything else that the developers can come up with. There are no restrictions on what it should do, as long as it follows basic regulations such as no harmful code, no hate speech, etc.
+
+TODO: Add tuhkis username
+
+This idea was proposed by [Tuhkis]() on the Mults' Discord server.
+
+## Rules
+
 
 ## Setup
 
@@ -13,7 +22,7 @@ Before setting up the project, ensure you have the following tools installed:
 - Make (for building dependencies)
 - MinGW (for Windows users)
 - SDL2 (for graphics) (Linux and macOS only)
-  
+
 #### Windows
 
 Scoop is a command-line installer for Windows that allows you to install software from the command line. It is recommended use it to install the required tools.
@@ -84,7 +93,7 @@ brew install sdl2
 ### Building the project
 
 To start clone this repository by running:
-    
+
 ```bash
 https://github.com/IonelPopJara/c-challenge.git
 cd c-challenge
