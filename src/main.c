@@ -1,17 +1,16 @@
 #include "raylib.h"
 
 int main(void) {
-    InitWindow(800, 450, "Simple Window");
+  InitWindow(800, 450, "Simple Window");
 
-    while (!WindowShouldClose()) {
-        BeginDrawing();
-        ClearBackground(BLACK);
-        DrawText("Windows development be like :(", 190, 200, 20, LIGHTGRAY);
-        EndDrawing();
-    }
+  while (!WindowShouldClose()) {
+    BeginDrawing();
+    ClearBackground(BLACK);
+    DrawText("Windows development be like :(", 190, 200, 20, LIGHTGRAY);
+    EndDrawing();
+  }
 
-    CloseWindow();
+  CloseWindow();
 
-    return 0;
+  return 0;
 }
-
