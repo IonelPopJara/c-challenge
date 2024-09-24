@@ -170,9 +170,9 @@ Navigate to the `external/raylib/src` directory and build the Raylib library acc
 **Windows**
 
 ```powershell # From the project root
-cd external/raylib/src
+cd external\raylib\src
 mingw32-make PLATFORM=PLATFORM_DESKTOP
-cd ../../.. # Go back to the project root
+cd ..\..\.. # Go back to the project root
 ```
 
 **Linux and macOS**
