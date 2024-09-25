@@ -150,16 +150,19 @@ In case you are interested, SDL2 is used as a backend for Raylib on Linux due to
 
 If you want to use GLFW instead, you can follow the [Linux instructions here](https://github.com/raysan5/raylib/wiki/Working-on-GNU-Linux) or the [macOS instructions here](https://github.com/raysan5/raylib/wiki/Working-on-macOS).
 
-````bash
-
 ### Building the project
 
-To start clone this repository by running:
+Begin by [forking the repository](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/fork-a-repo) to your GitHub account.
+
+Then clone your fork of the repo by running:
 
 ```bash
-https://github.com/IonelPopJara/c-challenge.git
-cd c-challenge
-````
+# DON'T FORGET TO REPLACE `your-username` WITH YOUR GITHUB USERNAME!!!!
+git clone https://github.com/your-username/c-challenge.git # Clone your fork
+cd c-challenge # Change directory to the project folder
+```
+
+For a more detailed guide on how to work on this repo you can check the [CONTRIBUTING.md](CONTRIBUTING.md) file.
 
 #### Building Raylib
 
