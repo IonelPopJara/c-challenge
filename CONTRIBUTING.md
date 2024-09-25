@@ -70,7 +70,7 @@ typedef struct audio_buffer {
 
 ### 1. Fork the Repository
 
-- Begin by [forking the repository](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/fork-a-repo) to your GitHub account.
+- Begin by [forking the repository](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/fork-a-repo) to your GitHub account. (If you already made a fork, ignore this step).
 
 ### 2. Clone your Fork
 
@@ -79,7 +79,23 @@ git clone https://github.com/your-username/c-challenge.git # Clone your fork
 cd c-challenge # Change directory to the project folder
 ```
 
-### 3. Create a Branch
+### 3. Pull the Latest Changes
+
+In case you have already cloned the repository before, you have to remove all the changes you made if you were testing the code:
+
+```bash
+git reset --hard origin/main # Remove all changes
+```
+
+Once you've done that, pull the latest changes from the original repository:
+
+```bash
+git pull origin main # Pull the latest changes
+```
+
+This will ensure that you have the latest code from the original repository.
+
+### 4. Create a Branch
 
 - Since this challenge is about creating a program without communication, you should name your new branch after your name or username. This is a bad practice in a real-world scenario, but it's fine for this challenge.
 
@@ -87,11 +103,11 @@ cd c-challenge # Change directory to the project folder
 git checkout -b my-username # Create a new branch
 ```
 
-### 4. Make Changes
+### 5. Make Changes
 
 - Follow the rules in the [README.md](./README.md) and in the [CONTRIBUTING.md](./CONTRIBUTING.md) to create your program.
 
-### 5. Commit Changes
+### 6. Commit Changes
 
 After making some changes, commit them to your branch. You can make as many commits as you want.
 
@@ -99,7 +115,7 @@ After making some changes, commit them to your branch. You can make as many comm
 git commit -m "Add something"
 ```
 
-### 6. Add username to the README
+### 7. Add username to the README
 
 - Don't forget to add your username to the [Contributors](./README.md#contributors) section in the README.
 - After that commit the changes:
@@ -108,7 +124,7 @@ git commit -m "Add something"
 git commit -m "Update README.md" - m "Add my-username to the contributors list"
 ```
 
-### 7. Push Changes
+### 8. Push Changes
 
 - Once you're done making changes, push them to your fork.
 
@@ -116,12 +132,12 @@ git commit -m "Update README.md" - m "Add my-username to the contributors list"
 git push origin my-username # Push changes to your fork
 ```
 
-### 8. Create a Pull Request
+### 9. Create a Pull Request
 
 - Go to your fork on GitHub and create a pull request to the `main` branch of the original repository. Add a title and a description to your pull request, and submit it.
 - Wait for maintainers to review your code and merge it.
 
-### 9. AFter PR is Merged
+### 10. AFter PR is Merged
 
 - you will be credited as a contributor on the project!
 
