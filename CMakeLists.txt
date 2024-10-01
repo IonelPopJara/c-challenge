@@ -43,7 +43,11 @@ endif()
 include_directories(${PROJECT_SOURCE_DIR}/external/raylib/src)
 
 # Add source files
-add_executable(${EXECUTABLE_NAME} src/main.c)
+add_executable(${EXECUTABLE_NAME}
+    src/main.c
+    src/util.c
+    src/ui.c
+)
 
 # Link libraries
 target_link_libraries(${EXECUTABLE_NAME} ${RAYLIB_LIB} ${SYSTEM_LIBS})
