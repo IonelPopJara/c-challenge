@@ -47,6 +47,7 @@ add_executable(${EXECUTABLE_NAME}
     src/main.c
     src/util.c
     src/ui.c
+    src/day.c
 )
 
 # Link libraries

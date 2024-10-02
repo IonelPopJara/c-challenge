@@ -9,6 +9,7 @@
 #include "stdio.h" // for printf
 
 #include "app.h"
+#include "day.h"
 #include "dyn_array.h"
 #include "style.h"
 #include "ui.h"
@@ -27,17 +28,20 @@ void draw_top_bar(void) {
         DrawRectangle(TOP_BAR_PADDING + 4, TOP_BAR_PADDING + 4, 16, TOP_BAR_HEIGHT - 2 * TOP_BAR_PADDING - 8, BG_COLOR1);
         DrawRectangle(TOP_BAR_PADDING + 4 + 16 + 4, TOP_BAR_PADDING + 4, 16, TOP_BAR_HEIGHT - 2 * TOP_BAR_PADDING - 8, BG_COLOR1);
         DrawRectangle(TOP_BAR_PADDING + 4 + 16 + 4 + 16 + 4, TOP_BAR_PADDING + 4, 16, TOP_BAR_HEIGHT - 2 * TOP_BAR_PADDING - 8, BG_COLOR1);
+        
     if (BUTTON_RELEASED == test_button(TOP_BAR_PADDING, TOP_BAR_PADDING, 64, TOP_BAR_HEIGHT - 2 * TOP_BAR_PADDING)) {
-        printf("Hello\n");
+        printf("Switch to week view\n");
     }
 }
 
 #define BODY_PADDING (12)
 #define DATE_OUTLINE (4)
 #define DATE_WIDTH (200)
+#define DATE_PADDING (4)
 void draw_body(void) {
     DrawRectangle(BODY_PADDING, TOP_BAR_HEIGHT + BODY_PADDING, DATE_WIDTH, GetScreenHeight() - TOP_BAR_HEIGHT - 2 * BODY_PADDING, BORDER_COLOR1);
     DrawRectangle(BODY_PADDING + DATE_OUTLINE, TOP_BAR_HEIGHT + BODY_PADDING + DATE_OUTLINE, DATE_WIDTH - 2 * DATE_OUTLINE, GetScreenHeight() - TOP_BAR_HEIGHT - 2 * BODY_PADDING - 2 * DATE_OUTLINE, BG_COLOR2);
+    DrawText("Mon 1st", BODY_PADDING + DATE_OUTLINE + DATE_PADDING, TOP_BAR_HEIGHT + BODY_PADDING + DATE_OUTLINE + DATE_PADDING, 32, BORDER_COLOR1);
 }
 
 int main(int argc, char **argv) {
@@ -45,6 +49,13 @@ int main(int argc, char **argv) {
     (void)argv;
 
     InitWindow(800, 550, "Hacktoberfest");
+    
+    /*
+    DAY today = get_today_utc();
+    CLOCK_TIME now = get_current_clock_utc();
+    printf("Today: %d of %d %d.\n%d\n", today.date.day, today.date.month, today.date.year);
+    printf("%d:%d:%d\n", now.hour, now.minute, now.second);
+    */
 
     while (!WindowShouldClose()) {
         BeginDrawing();

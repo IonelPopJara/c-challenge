@@ -1,5 +1,6 @@
 /**
- * Simple (and kinda cumbersome) IMGUI handler for this project
+ * Simple (and kinda cumbersome) gui widget handler for this project.
+ * This "module" won't render anything. Only deals with the logic.
  */
 
 #ifndef UI_H
@@ -14,8 +15,10 @@ typedef enum button_state {
     BUTTON_RELEASED
 } BUTTON_STATE;
 
-// NOTE(Tuhkis): I prefer `int` over `_Bool` because `_Bool` introduces secret extra behviour with some compileres.
 BUTTON_STATE test_button(int x, int y, int w, int h);
+
+// NOTE(Tuhkis): I prefer `int` over `_Bool` because `_Bool` introduces secret extra behviour with some compileres.
+int process_text_input(int focused, char* buffer, int writeable_length, int x, int y, int font_size);
 
 #endif // UI_H
 
