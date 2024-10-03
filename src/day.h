@@ -9,6 +9,8 @@
 #define SCHEDULE_TEXT_MAX_LEN (1024)
 #define DAY_MAX_SCHEDULE_ITEMS (128)
 
+#define DAYS_IN_WEEK (7)
+
 typedef enum weekday {
     MONDAY, // I'll begin with Monday. Sue me.
     TUESDAY,
