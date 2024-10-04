@@ -9,7 +9,7 @@ DAY get_today_utc(void) {
     struct tm *timespec;
 
     time(&raw_time);
-    timespec = gmtime(&raw_time);
+    timespec = localtime(&raw_time);
 
     ret.date.day = timespec->tm_mday;
     ret.date.month = timespec->tm_mon + 1; // Month since january + 1
@@ -51,8 +51,8 @@ CLOCK_TIME get_current_clock_utc(void) {
     struct tm *timespec;
 
     time(&raw_time);
-    timespec = gmtime(&raw_time);
-  
+    timespec = localtime(&raw_time);
+    
     ret.hour = timespec->tm_hour;
     ret.minute = timespec->tm_min;
     ret.second = timespec->tm_sec;
