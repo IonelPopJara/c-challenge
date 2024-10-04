@@ -2,7 +2,7 @@
 
 #include "day.h"
 
-DAY get_today_utc(void) {
+DAY get_today_local(void) {
     DAY ret = {0};
 
     time_t raw_time;
@@ -44,7 +44,7 @@ DAY get_today_utc(void) {
     return ret;
 }
 
-CLOCK_TIME get_current_clock_utc(void) {
+CLOCK_TIME get_current_clock_local(void) {
     CLOCK_TIME ret = {0};
 
     time_t raw_time;

@@ -31,7 +31,16 @@ APP_STATE app = {0};
 void view_button(int rows, Sound *click_sound) {
     DrawRectangle(TOP_BAR_PADDING, TOP_BAR_PADDING, SELECT_VIEW_WIDTH, TOP_BAR_HEIGHT - 2 * TOP_BAR_PADDING, ACCENT_COLOR2);
     if (BUTTON_RELEASED == test_button(TOP_BAR_PADDING, TOP_BAR_PADDING, SELECT_VIEW_WIDTH, TOP_BAR_HEIGHT - 2 * TOP_BAR_PADDING)) {
-        app.view_type = (app.view_type == WEEK_VIEW) ? MONTH_VIEW : WEEK_VIEW; //printf("Switch to week view\n");
+        if (app.view_type == WEEK_VIEW) {
+            app.view_type = MONTH_VIEW;
+            app.view_offset_uniform /= WEEKS_IN_MONTH;
+            app.view_offset_days = DAYS_IN_WEEK * WEEKS_IN_MONTH; // The 5th line is shared between the current and next month (as is the case with the 1st line)
+        }
+        else {
+            app.view_type = WEEK_VIEW;
+            app.view_offset_uniform *= WEEKS_IN_MONTH;
+            app.view_offset_days = DAYS_IN_WEEK;
+        }
         PlaySound(*click_sound);
     }
     
@@ -52,7 +61,7 @@ void view_button(int rows, Sound *click_sound) {
 #define TIME_LABEL_PERIOD_SIZE (24)
 #define COLUMN_CHAR_PADDING (3)
 void time_label(Sound *click_sound) {
-    CLOCK_TIME now = get_current_clock_utc();
+    CLOCK_TIME now = get_current_clock_local();
     char *time_period_str = app.use_24h_format == 1 ? "" : now.hour > 12 ? " PM" : " AM";
     char hour_str[3]; // Always remember to leave a slot for the '\n' character
     char minute_str[3]; // Always remember to leave a slot for the '\n' character
@@ -98,7 +107,7 @@ void draw_top_bar(int rows, Sound *click_sound) {
     view_button(rows, click_sound);
     time_label(click_sound);
     
-    char *date_year_str = "November 2024";
+    char *date_year_str = "Nov. 2024";
     DrawText(date_year_str,
         GetScreenWidth() / 2 - MeasureText(date_year_str, DATE_YEAR_LABEL_SIZE) / 2,
         TOP_BAR_HEIGHT - TOP_BAR_PADDING - DATE_YEAR_LABEL_SIZE, 
@@ -121,17 +130,18 @@ int find_ideal_text_size(char *text, int max_width) {
 
 // The W and the 8 are (usually) the widest characters among letters and numbers
 #define TEST_DATE_STR ("WWW 88ww")
-// This should have been declared inside of the "day" file, but idk how to make it visible here if i do that
+// This should have been declared inside of the "day" file, but i don't know how to make it visible here if i do that - M37
 const char *WEEKDAY_NAMES[] = {
     "Monday", "Tuesday", 
     "Wednesday", "Thursday",
     "Friday", "Saturday", "Sunday"
 };
+// Same thing for this one as the prev. array - M37
 const char *MONTH_NAMES[] = {
-    "January", "February", "March",
-    "April", "May", "June", "July",
-    "August", "September", "October", 
-    "November", "December"
+    "Jan.", "Feb.", "Mar.",
+    "Apr.", "May", "June", "July",
+    "Aug.", "Sept.", "Oct.", 
+    "Nov.", "Dec."
 };
 
 #define BODY_PADDING_OUT (8)
@@ -152,32 +162,32 @@ void draw_body(int rows, int display_date_offset) {
     }
     for (int y = 0; y < rows; ++y) {
         for (int x = 0; x < DAYS_IN_WEEK; ++x) {
-            DrawRectangle(
-                BODY_PADDING_OUT + (date_width + BODY_PADDING_IN) * x,
-                TOP_BAR_HEIGHT + BODY_PADDING_OUT + week_bar_height + (date_height + BODY_PADDING_IN) * y, 
-                date_width, date_height, BORDER_COLOR1);
-            
+            Color outline = BORDER_COLOR2;
+            Color inner = BORDER_COLOR1;
             int day_num = y * DAYS_IN_WEEK + x - display_date_offset;
-            Color text_color = BORDER_COLOR2;
             if (app.view_type == WEEK_VIEW || day_num > -1 && day_num < 30) {
-                DrawRectangle(
-                    BODY_PADDING_OUT + (date_width + BODY_PADDING_IN) * x + DATE_OUTLINE,
-                    TOP_BAR_HEIGHT + BODY_PADDING_OUT + week_bar_height + (date_height + BODY_PADDING_IN) * y + DATE_OUTLINE,
-                    date_width - 2 * DATE_OUTLINE, date_height - 2 * DATE_OUTLINE, BG_COLOR2);
-                text_color = BORDER_COLOR1;
+                outline = BORDER_COLOR1;
+                inner = BG_COLOR2;
             }
-            
             if (day_num < 0) {
                 day_num = 30 + day_num;
             }
             day_num = day_num  % 30 + 1;
-            
             char intstr[3]; // Always remember to leave a slot for the '\n' character
             snprintf(intstr, 3, "%d", day_num); // Like printf, but returns the string instread of printing it (and also has a max size for additional safety)
+            
+            DrawRectangle(
+                BODY_PADDING_OUT + (date_width + BODY_PADDING_IN) * x,
+                TOP_BAR_HEIGHT + BODY_PADDING_OUT + week_bar_height + (date_height + BODY_PADDING_IN) * y, 
+                date_width, date_height, outline);
+            DrawRectangle(
+                BODY_PADDING_OUT + (date_width + BODY_PADDING_IN) * x + DATE_OUTLINE,
+                TOP_BAR_HEIGHT + BODY_PADDING_OUT + week_bar_height + (date_height + BODY_PADDING_IN) * y + DATE_OUTLINE,
+                date_width - 2 * DATE_OUTLINE, date_height - 2 * DATE_OUTLINE, inner);
             DrawText(&intstr[0],
                 BODY_PADDING_OUT + (date_width + BODY_PADDING_IN) * x + DATE_OUTLINE + DATE_PADDING,
                 TOP_BAR_HEIGHT + BODY_PADDING_OUT + week_bar_height + DATE_OUTLINE + DATE_PADDING + (date_height + BODY_PADDING_IN) * y,
-                text_size, text_color);
+                text_size, outline);
         }
     }
 }
@@ -218,8 +228,12 @@ int main(int argc, char **argv) {
     strcat(click_path, "assets\\click.wav");
     Sound click_sound = LoadSound(click_path);
     
-    DAY today = get_today_utc();
+    DAY today = get_today_local();
     printf("Today: %d of %d %d\n", today.date.day, today.date.month, today.date.year);
+    
+    app.view_type = WEEK_VIEW;
+    app.view_offset_uniform = 0;
+    app.view_offset_days = 7;
     app.use_24h_format = 1;
     
     while (!WindowShouldClose()) {

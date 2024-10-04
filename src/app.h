@@ -8,6 +8,8 @@ typedef enum app_view {
 
 typedef struct app_state {
     APP_VIEW view_type;
+    int view_offset_uniform;
+    int view_offset_days;
     int use_24h_format; // I'll forllow in Tuhkis steps, and also use int instead of bool
 } APP_STATE;
 
