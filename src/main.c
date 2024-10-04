@@ -9,6 +9,7 @@
 
 #include "raylib.h"
 #include "stdio.h" // for printf (and now also snprintf i guess :P)
+#include "string.h" // for strcopy and strcat
 
 #include "app.h"
 #include "day.h"
@@ -17,22 +18,21 @@
 #include "ui.h"
 #include "util.h"
 
+// THIS IS PUBLICLY ACCESSED. DO NOT ACCESS FROM THREADS IF YOU DON't KNOW WHAT YOU'RE DOING
+APP_STATE app = {0};
+
 #define TOP_BAR_HEIGHT (66)
 #define TOP_BAR_PADDING (8)
+
 #define SELECT_VIEW_WIDTH (64)
 #define SELECT_VIEW_ICON_COLUMNS (3)
 #define SELECT_VIEW_ICON_PADDING_OUT (4)
 #define SELECT_VIEW_ICON_PADDING_IN (4)
-
-// THIS IS PUBLICLY ACCESSED. DO NOT ACCESS FROM THREADS IF YOU DON't KNOW WHAT YOU'RE DOING
-APP_STATE app = {0};
-
-void draw_top_bar(int rows) {
-    DrawRectangle(0, 0, GetScreenWidth(), TOP_BAR_HEIGHT, ACCENT_COLOR1);
-
+void view_button(int rows, Sound *click_sound) {
     DrawRectangle(TOP_BAR_PADDING, TOP_BAR_PADDING, SELECT_VIEW_WIDTH, TOP_BAR_HEIGHT - 2 * TOP_BAR_PADDING, ACCENT_COLOR2);
     if (BUTTON_RELEASED == test_button(TOP_BAR_PADDING, TOP_BAR_PADDING, SELECT_VIEW_WIDTH, TOP_BAR_HEIGHT - 2 * TOP_BAR_PADDING)) {
         app.view_type = (app.view_type == WEEK_VIEW) ? MONTH_VIEW : WEEK_VIEW; //printf("Switch to week view\n");
+        PlaySound(*click_sound);
     }
     
     int bar_width = (SELECT_VIEW_WIDTH - 2 * SELECT_VIEW_ICON_PADDING_OUT - (SELECT_VIEW_ICON_COLUMNS - 1) * SELECT_VIEW_ICON_PADDING_IN) / SELECT_VIEW_ICON_COLUMNS;
@@ -45,6 +45,64 @@ void draw_top_bar(int rows) {
                 bar_width, bar_height, BG_COLOR1);
         }
     }
+}
+
+#define DATE_YEAR_LABEL_SIZE (48)
+#define TIME_LABEL_SIZE (48)
+#define TIME_LABEL_PERIOD_SIZE (24)
+#define COLUMN_CHAR_PADDING (3)
+void time_label(Sound *click_sound) {
+    CLOCK_TIME now = get_current_clock_utc();
+    char *time_period_str = app.use_24h_format == 1 ? "" : now.hour > 12 ? " PM" : " AM";
+    char hour_str[3]; // Always remember to leave a slot for the '\n' character
+    char minute_str[3]; // Always remember to leave a slot for the '\n' character
+    snprintf(hour_str, 3, "%02d", app.use_24h_format == 0 && now.hour > 12 ? now.hour - 12 :  now.hour);
+    snprintf(minute_str, 3, "%02d", now.minute);
+    int hour_str_length = MeasureText(&hour_str[0], TIME_LABEL_SIZE);
+    int dot_str_length = MeasureText(":", TIME_LABEL_SIZE);
+    int minute_str_length = MeasureText(&minute_str[0], TIME_LABEL_SIZE);
+    int timer_period_str_length = MeasureText(time_period_str, TIME_LABEL_PERIOD_SIZE);
+    
+    if (BUTTON_RELEASED == test_button(
+        GetScreenWidth() - 2 * TOP_BAR_PADDING - timer_period_str_length - minute_str_length - dot_str_length - 2 * COLUMN_CHAR_PADDING - hour_str_length, 
+        TOP_BAR_HEIGHT - TOP_BAR_PADDING - TIME_LABEL_SIZE, 
+        hour_str_length + dot_str_length + minute_str_length + timer_period_str_length + 2 * COLUMN_CHAR_PADDING, 
+        TIME_LABEL_SIZE)) {
+        app.use_24h_format = ++app.use_24h_format % 2;
+        PlaySound(*click_sound);
+    }
+    
+    DrawText(time_period_str,
+        GetScreenWidth() - 2 * TOP_BAR_PADDING - timer_period_str_length,
+        TOP_BAR_HEIGHT - 2 * TOP_BAR_PADDING - TIME_LABEL_PERIOD_SIZE,
+        TIME_LABEL_PERIOD_SIZE, ACCENT_COLOR2);
+    DrawText(&minute_str[0],
+        GetScreenWidth() - 2 * TOP_BAR_PADDING - timer_period_str_length - minute_str_length,
+        TOP_BAR_HEIGHT - TOP_BAR_PADDING - TIME_LABEL_SIZE, 
+        TIME_LABEL_SIZE, ACCENT_COLOR2);
+    if (now.second % 2 == 0)
+    {
+        DrawText(":",
+        GetScreenWidth() - 2 * TOP_BAR_PADDING - timer_period_str_length - minute_str_length - dot_str_length - COLUMN_CHAR_PADDING,
+        TOP_BAR_HEIGHT - TOP_BAR_PADDING - TIME_LABEL_SIZE, 
+        TIME_LABEL_SIZE, ACCENT_COLOR2);
+    }
+    DrawText(&hour_str[0],
+        GetScreenWidth() - 2 * TOP_BAR_PADDING - timer_period_str_length - minute_str_length - dot_str_length - 2 * COLUMN_CHAR_PADDING - hour_str_length,
+        TOP_BAR_HEIGHT - TOP_BAR_PADDING - TIME_LABEL_SIZE, 
+        TIME_LABEL_SIZE, ACCENT_COLOR2);
+}
+
+void draw_top_bar(int rows, Sound *click_sound) {
+    DrawRectangle(0, 0, GetScreenWidth(), TOP_BAR_HEIGHT, ACCENT_COLOR1);
+    view_button(rows, click_sound);
+    time_label(click_sound);
+    
+    char *date_year_str = "November 2024";
+    DrawText(date_year_str,
+        GetScreenWidth() / 2 - MeasureText(date_year_str, DATE_YEAR_LABEL_SIZE) / 2,
+        TOP_BAR_HEIGHT - TOP_BAR_PADDING - DATE_YEAR_LABEL_SIZE, 
+        DATE_YEAR_LABEL_SIZE, ACCENT_COLOR2);
 }
 
 // This piece of code is so cursed. Sorry for what i've created - M37
@@ -64,10 +122,16 @@ int find_ideal_text_size(char *text, int max_width) {
 // The W and the 8 are (usually) the widest characters among letters and numbers
 #define TEST_DATE_STR ("WWW 88ww")
 // This should have been declared inside of the "day" file, but idk how to make it visible here if i do that
-const char * WEEKDAY_NAMES[] = {
+const char *WEEKDAY_NAMES[] = {
     "Monday", "Tuesday", 
     "Wednesday", "Thursday",
     "Friday", "Saturday", "Sunday"
+};
+const char *MONTH_NAMES[] = {
+    "January", "February", "March",
+    "April", "May", "June", "July",
+    "August", "September", "October", 
+    "November", "December"
 };
 
 #define BODY_PADDING_OUT (8)
@@ -92,21 +156,37 @@ void draw_body(int rows, int display_date_offset) {
                 BODY_PADDING_OUT + (date_width + BODY_PADDING_IN) * x,
                 TOP_BAR_HEIGHT + BODY_PADDING_OUT + week_bar_height + (date_height + BODY_PADDING_IN) * y, 
                 date_width, date_height, BORDER_COLOR1);
-            DrawRectangle(
-                BODY_PADDING_OUT + (date_width + BODY_PADDING_IN) * x + DATE_OUTLINE,
-                TOP_BAR_HEIGHT + BODY_PADDING_OUT + week_bar_height + (date_height + BODY_PADDING_IN) * y + DATE_OUTLINE,
-                date_width - 2 * DATE_OUTLINE, date_height - 2 * DATE_OUTLINE, BG_COLOR2);
+            
             int day_num = y * DAYS_IN_WEEK + x - display_date_offset;
+            Color text_color = BORDER_COLOR2;
+            if (app.view_type == WEEK_VIEW || day_num > -1 && day_num < 30) {
+                DrawRectangle(
+                    BODY_PADDING_OUT + (date_width + BODY_PADDING_IN) * x + DATE_OUTLINE,
+                    TOP_BAR_HEIGHT + BODY_PADDING_OUT + week_bar_height + (date_height + BODY_PADDING_IN) * y + DATE_OUTLINE,
+                    date_width - 2 * DATE_OUTLINE, date_height - 2 * DATE_OUTLINE, BG_COLOR2);
+                text_color = BORDER_COLOR1;
+            }
+            
             if (day_num < 0) {
                 day_num = 30 + day_num;
             }
             day_num = day_num  % 30 + 1;
+            
             char intstr[3]; // Always remember to leave a slot for the '\n' character
             snprintf(intstr, 3, "%d", day_num); // Like printf, but returns the string instread of printing it (and also has a max size for additional safety)
             DrawText(&intstr[0],
                 BODY_PADDING_OUT + (date_width + BODY_PADDING_IN) * x + DATE_OUTLINE + DATE_PADDING,
                 TOP_BAR_HEIGHT + BODY_PADDING_OUT + week_bar_height + DATE_OUTLINE + DATE_PADDING + (date_height + BODY_PADDING_IN) * y,
-                text_size, BORDER_COLOR1);
+                text_size, text_color);
+        }
+    }
+}
+
+void truncate_str_after_directory_separator(char *path) {
+    for (int i = strlen(path); i >= 0; --i) {
+        if (path[i] == '\\' || path[i] == '/') {
+            path[i+1] = '\0';
+            return;
         }
     }
 }
@@ -120,19 +200,37 @@ int main(int argc, char **argv) {
     SetConfigFlags(FLAG_WINDOW_RESIZABLE);
     InitWindow(WIN_MIN_WIDTH, WIN_MIN_HEIGHT, "Hacktoberfest");
     SetWindowMinSize(WIN_MIN_WIDTH, WIN_MIN_HEIGHT);
+    InitAudioDevice();
+    
+    /**
+     * I'm sure there is a better way to optimize the memory usage for this
+     * But currently, I am not aware of such way
+     * I'm sorry for wasting your memory for such a simple task - M37
+     */
+    char local_path[strlen(argv[0]) + 1]; // Always remember to leave a slot for the '\n' character
+    strcpy(local_path, argv[0]);
+    truncate_str_after_directory_separator(local_path);
+    
+    char click_path[strlen(local_path) + 1]; // Always remember to leave a slot for the '\n' character
+    strcpy(click_path, local_path);
+    click_path[strlen(click_path) - 1] = '\0';
+    truncate_str_after_directory_separator(click_path);
+    strcat(click_path, "assets\\click.wav");
+    Sound click_sound = LoadSound(click_path);
     
     DAY today = get_today_utc();
-    CLOCK_TIME now = get_current_clock_utc();
-    printf("Today: %d of %d %d. Time: %d:%d:%d\n", today.date.day, today.date.month, today.date.year, now.hour, now.minute, now.second);
-
+    printf("Today: %d of %d %d\n", today.date.day, today.date.month, today.date.year);
+    app.use_24h_format = 1;
+    
     while (!WindowShouldClose()) {
         BeginDrawing();
             ClearBackground(BG_COLOR1);
-            draw_top_bar(app.view_type == WEEK_VIEW ? 3 : 1);
+            draw_top_bar(app.view_type == WEEK_VIEW ? 3 : 1, &click_sound);
             draw_body(app.view_type == WEEK_VIEW ? 1 : 5, 1);
         EndDrawing();
     }
 
+    CloseAudioDevice();
     CloseWindow();
 
     return 0;
