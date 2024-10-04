@@ -164,7 +164,7 @@ void draw_body(int rows, int display_date_offset) {
         for (int x = 0; x < DAYS_IN_WEEK; ++x) {
             Color outline = BORDER_COLOR2;
             Color inner = BORDER_COLOR1;
-            int day_num = y * DAYS_IN_WEEK + x - display_date_offset;
+            int day_num = y * DAYS_IN_WEEK + x - display_date_offset; // I can't be bothered to do time calculation rn, sorry future devs - M37
             if (app.view_type == WEEK_VIEW || day_num > -1 && day_num < 30) {
                 outline = BORDER_COLOR1;
                 inner = BG_COLOR2;
@@ -213,8 +213,7 @@ int main(int argc, char **argv) {
     InitAudioDevice();
     
     /**
-     * I'm sure there is a better way to optimize the memory usage for this
-     * But currently, I am not aware of such way
+     * I'm sure there is a better way to optimize the memory usage for this, but currently, I am not aware of such way
      * I'm sorry for wasting your memory for such a simple task - M37
      */
     char local_path[strlen(argv[0]) + 1]; // Always remember to leave a slot for the '\n' character
