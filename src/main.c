@@ -208,7 +208,7 @@ int find_ideal_text_size(char *text, int max_width) {
 #define DATE_OUTLINE (4)
 #define DATE_WIDTH (200)
 #define DATE_PADDING (4)
-void draw_body() {
+void draw_body(DAY today) {
     int rows = app.view_type == WEEK_VIEW ? 1 : 6;
     
     int date_width = (GetScreenWidth() - 2 * BODY_PADDING_OUT - (DAYS_IN_WEEK - 1) * BODY_PADDING_IN) / DAYS_IN_WEEK;
@@ -235,6 +235,10 @@ void draw_body() {
             if (is_day_of_current_month == 1) {
                 outline = BORDER_COLOR1;
                 inner = BG_COLOR2;
+            }
+            // Override Color if drawing current day
+            if (current.date.year == today.date.year && current.date.month == today.date.month && current.date.day == today.date.day) {
+                outline = ACCENT_COLOR1;
             }
             
             char intstr[3]; // Always remember to leave a slot for the '\n' character
@@ -313,7 +317,7 @@ int main(int argc, char **argv) {
         BeginDrawing();
             ClearBackground(BG_COLOR1);
             draw_top_bar(&click_sound);
-            draw_body();
+            draw_body(today);
         EndDrawing();
     }
 
