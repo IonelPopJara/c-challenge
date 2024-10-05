@@ -237,5 +237,5 @@ If you are running the project before any contributions, you should see a window
 If you encounter any issues, please write them down here with the solution you found.
 
 ## Contributors
-
-`//TODO: Add a contributor's name after they finish their turn`
+Tuhkis
+Marxy37
