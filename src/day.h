@@ -10,7 +10,7 @@
 #define DAY_MAX_SCHEDULE_ITEMS (128)
 
 #define DAYS_IN_WEEK (7)
-#define WEEKS_IN_MONTH (7)
+#define WEEKS_IN_MONTH (4)
 
 typedef enum weekday {
     MONDAY, // I'll begin with Monday. Sue me.
@@ -46,6 +46,8 @@ typedef struct day {
     } date;
     WEEKDAY weekday;
 } DAY;
+
+void validate_day(DAY *value);
 
 DAY get_today_local(void);
 CLOCK_TIME get_current_clock_local(void);
