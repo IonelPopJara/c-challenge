@@ -317,18 +317,24 @@ void draw_body(DAY today) {
         */
         int text_pos = (GetScreenWidth() / 4) +
                        (GetScreenWidth() / 2 - MeasureText(str, text_size)) / 2;
+                    
 
         DrawText(str, text_pos, (GetScreenHeight() + 2 * TOP_BAR_HEIGHT) / 4 + 10,
                  text_size, BG_COLOR2);
 
         // Day Schedule Title Box
-        Rectangle title_box = {
-            (float)GetScreenWidth() / 4 + 20,
-            (float)(GetScreenHeight() + 2 * TOP_BAR_HEIGHT) / 4 +
-                (float)GetScreenHeight() / 12,
-            (float)GetScreenWidth() / 2 - 40, (float)GetScreenHeight() / 12};
+        Rectangle title_box = {(float)GetScreenWidth() / 4 + 20,
+                               (float)(GetScreenHeight() + 2 * TOP_BAR_HEIGHT) /4 + (float)GetScreenHeight() / 12,
+                               (float)GetScreenWidth() / 2 - 40,
+                               (float)GetScreenHeight() / 12},
+                  edit_details_box = {
+                    .x = GetScreenWidth() / 4 + 20,
+                    .y = GetScreenHeight()+ 2*TOP_BAR_HEIGHT/4+GetScreenHeight()/12
+                  };
 
-        DrawRectangleRec(title_box, BORDER_COLOR1);
+
+        
+       
 
         Vector2 title_pos = {
             .x = (float)(GetScreenWidth()) / 4 + 20 +
@@ -365,8 +371,10 @@ void draw_body(DAY today) {
             }
             key = GetCharPressed();
         }
-            
+
         if (IsKeyPressed(KEY_BACKSPACE)) {
+            wrap_title_index--;
+            if (wrap_title_index < 0 ) wrap_title_index = 0;
             title_letter_count--;
             if (title_letter_count < 0)
                 title_letter_count = 0;
