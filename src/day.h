@@ -47,6 +47,11 @@ typedef struct day {
     WEEKDAY weekday;
 } DAY;
 
+typedef struct day_schedule {
+    SCHEDULE_ITEM schedule_item[128];
+    DAY day;
+} DAY_SCHEDULE;
+
 void validate_day(DAY *value);
 
 DAY get_today_local(void);

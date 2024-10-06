@@ -41,7 +41,7 @@ void snap_focus_to_1st_of_month() {
 void view_button(Sound *click_sound) {
     int rows = app.view_type == WEEK_VIEW ? 3 : 1;
     DrawRectangle(TOP_BAR_PADDING, TOP_BAR_PADDING, SELECT_VIEW_WIDTH, TOP_BAR_HEIGHT - 2 * TOP_BAR_PADDING, ACCENT_COLOR2);
-    if (BUTTON_RELEASED == test_button(TOP_BAR_PADDING, TOP_BAR_PADDING, SELECT_VIEW_WIDTH, TOP_BAR_HEIGHT - 2 * TOP_BAR_PADDING)) {
+    if (BUTTON_RELEASED == test_button(TOP_BAR_PADDING, TOP_BAR_PADDING, SELECT_VIEW_WIDTH, TOP_BAR_HEIGHT - 2 * TOP_BAR_PADDING,MOUSE_BUTTON_LEFT)) {
         if (app.view_type == WEEK_VIEW) {
             app.view_type = MONTH_VIEW;
             snap_focus_to_1st_of_month();
@@ -81,7 +81,7 @@ void arrows_buttons(Sound *click_sound) {
     t1_v3.y = TOP_BAR_HEIGHT / 2;
     
     DrawTriangle(t1_v1, t1_v2, t1_v3, BG_COLOR1);
-    if (BUTTON_RELEASED == test_button(TOP_BAR_PADDING + SELECT_VIEW_WIDTH + SELECT_VIEW_ICON_PADDING_OUT, TOP_BAR_PADDING, ARROW_BOX_WIDTH, TOP_BAR_HEIGHT - 2 * TOP_BAR_PADDING)) {
+    if (BUTTON_RELEASED == test_button(TOP_BAR_PADDING + SELECT_VIEW_WIDTH + SELECT_VIEW_ICON_PADDING_OUT, TOP_BAR_PADDING, ARROW_BOX_WIDTH, TOP_BAR_HEIGHT - 2 * TOP_BAR_PADDING,MOUSE_BUTTON_LEFT)) {
         app.view_first.date.day -= DAYS_IN_WEEK * (app.view_type == WEEK_VIEW ? 1 : WEEKS_IN_MONTH);
         validate_day(&app.view_first);
         PlaySound(*click_sound);
@@ -100,7 +100,7 @@ void arrows_buttons(Sound *click_sound) {
     t2_v3.y = TOP_BAR_HEIGHT / 2;
     
     DrawTriangle(t2_v1, t2_v2, t2_v3, BG_COLOR1);
-    if (BUTTON_RELEASED == test_button(TOP_BAR_PADDING + SELECT_VIEW_WIDTH + ARROW_BOX_WIDTH + 2 * SELECT_VIEW_ICON_PADDING_OUT, TOP_BAR_PADDING, ARROW_BOX_WIDTH, TOP_BAR_HEIGHT - 2 * TOP_BAR_PADDING)) {
+    if (BUTTON_RELEASED == test_button(TOP_BAR_PADDING + SELECT_VIEW_WIDTH + ARROW_BOX_WIDTH + 2 * SELECT_VIEW_ICON_PADDING_OUT, TOP_BAR_PADDING, ARROW_BOX_WIDTH, TOP_BAR_HEIGHT - 2 * TOP_BAR_PADDING,MOUSE_BUTTON_LEFT)) {
         app.view_first.date.day += DAYS_IN_WEEK * (app.view_type == WEEK_VIEW ? 1 : WEEKS_IN_MONTH);
         validate_day(&app.view_first);
         PlaySound(*click_sound);
@@ -127,7 +127,7 @@ void time_label(Sound *click_sound) {
         GetScreenWidth() - 2 * TOP_BAR_PADDING - timer_period_str_length - minute_str_length - dot_str_length - 2 * COLUMN_CHAR_PADDING - hour_str_length, 
         TOP_BAR_HEIGHT - TOP_BAR_PADDING - TIME_LABEL_SIZE, 
         hour_str_length + dot_str_length + minute_str_length + timer_period_str_length + 2 * COLUMN_CHAR_PADDING, 
-        TIME_LABEL_SIZE)) {
+        TIME_LABEL_SIZE,MOUSE_BUTTON_LEFT)) {
         app.use_24h_format = ++app.use_24h_format % 2;
         PlaySound(*click_sound);
     }
@@ -208,6 +208,8 @@ int find_ideal_text_size(char *text, int max_width) {
 #define DATE_OUTLINE (4)
 #define DATE_WIDTH (200)
 #define DATE_PADDING (4)
+#define MIN_DAY_MENU_WIDTH (80)
+#define MIN_DAY_MENU_HEIGHT (40)
 void draw_body(DAY today) {
     int rows = app.view_type == WEEK_VIEW ? 1 : 6;
     
@@ -224,6 +226,12 @@ void draw_body(DAY today) {
     
     int is_day_of_current_month = (int)(app.view_type == WEEK_VIEW);
     DAY current = app.view_first;
+
+    static int is_menu_visible = 0;
+    static Vector2 last_mouse_pos = {0};
+    static DAY last_pressed_day = {0};
+    static int mouse_on_title=0;
+    int is_today = 0;
     
     for (int y = 0; y < rows; ++y) {
         for (int x = 0; x < DAYS_IN_WEEK; ++x) {
@@ -239,6 +247,9 @@ void draw_body(DAY today) {
             // Override Color if drawing current day
             if (current.date.year == today.date.year && current.date.month == today.date.month && current.date.day == today.date.day) {
                 outline = ACCENT_COLOR1;
+                is_today = 1;
+            } else {
+                is_today=0;
             }
             
             char intstr[3]; // Always remember to leave a slot for the '\n' character
@@ -256,6 +267,51 @@ void draw_body(DAY today) {
                 BODY_PADDING_OUT + (date_width + BODY_PADDING_IN) * x + DATE_OUTLINE + DATE_PADDING,
                 TOP_BAR_HEIGHT + BODY_PADDING_OUT + week_bar_height + DATE_OUTLINE + DATE_PADDING + (date_height + BODY_PADDING_IN) * y,
                 text_size, outline);
+
+
+            
+            if ((BUTTON_RELEASED == test_button(
+                    BODY_PADDING_OUT + (date_width + BODY_PADDING_IN) * x + DATE_OUTLINE,
+                    TOP_BAR_HEIGHT + BODY_PADDING_OUT + week_bar_height +
+                        (date_height + BODY_PADDING_IN) * y + DATE_OUTLINE,
+                    date_width - 2 * DATE_OUTLINE, date_height - 2 * DATE_OUTLINE, MOUSE_BUTTON_LEFT))){
+                if (is_menu_visible == 0) {
+                    //printf("On %d date\n", current.date.day);
+                    is_menu_visible = 1;
+                    last_pressed_day=current;
+                } else if (is_menu_visible == 1) {
+                  is_menu_visible=0;
+                }
+            }
+            //TODO : Menu on Window Resizing
+            if ((BUTTON_RELEASED == test_button(0,0,GetScreenWidth(),TOP_BAR_HEIGHT,MOUSE_BUTTON_LEFT))) {
+                is_menu_visible = 0;
+            }
+            if (is_menu_visible) {
+                // Day Schedule Box
+                DrawRectangle(GetScreenWidth() / 4,
+                              (GetScreenHeight() + 2 * TOP_BAR_HEIGHT) / 4,
+                              GetScreenWidth()/2,GetScreenHeight()/2, 
+                              ACCENT_COLOR1);
+                char str[40];
+                snprintf(str, 40, "Task for %s", is_today?"Today":TextFormat("%d/%d/%d",last_pressed_day.date.day,last_pressed_day.date.month,last_pressed_day.date.year));
+                // center the text in a given rectangle box
+                int text_pos =
+                    (GetScreenWidth() / 4) +
+                    (GetScreenWidth() / 2 - MeasureText(str, text_size)) / 2;
+                DrawText(str, text_pos,
+                         (GetScreenHeight() + 2 * TOP_BAR_HEIGHT) / 4 + 10, text_size,
+                         BG_COLOR2);
+                // Day Schedule Title Box
+                Rectangle titleBox = {
+                    (float)GetScreenWidth() / 4 + 20,
+                    (float)(GetScreenHeight() + 2 * TOP_BAR_HEIGHT) / 4 + 45,
+                    (float)GetScreenWidth() / 2 - 40, (float)GetScreenHeight() / 10};
+                DrawRectangleRec(titleBox, BORDER_COLOR1);
+                DrawText("Title",GetScreenWidth()/4 + 20 ,  (GetScreenHeight() + 2 * TOP_BAR_HEIGHT) / 4 + 45, text_size, BG_COLOR2);
+            }
+
+            
             
             int prev_day = current.date.day;
             ++current.date.day;
@@ -299,7 +355,11 @@ int main(int argc, char **argv) {
     strcpy(click_path, local_path);
     click_path[strlen(click_path) - 1] = '\0';
     truncate_str_after_directory_separator(click_path);
-    strcat(click_path, "assets\\click.wav");
+    #if defined(_WIN32)
+        strcat(click_path, "assets\\click.wav");
+    #elif unix
+        strcat(click_path, "assets/click.wav");
+    #endif
     Sound click_sound = LoadSound(click_path);
     
     app.use_24h_format = 1;
