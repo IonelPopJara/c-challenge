@@ -2,7 +2,7 @@
 
 #include "ui.h"
 
-BUTTON_STATE test_button(int x, int y, int w, int h) {
+BUTTON_STATE test_button(int x, int y, int w, int h,MouseButton mouse_button) {
     /*
      * Cursed one-liner of ternary incoming.
      * Boils down to:
@@ -16,7 +16,7 @@ BUTTON_STATE test_button(int x, int y, int w, int h) {
      * else:
      *     return button is not being interacted with
      */
-    return CheckCollisionPointRec(GetMousePosition(), (Rectangle) {x, y, w, h}) ? (IsMouseButtonReleased(MOUSE_BUTTON_LEFT) ? BUTTON_RELEASED : (IsMouseButtonDown(MOUSE_BUTTON_LEFT) ? BUTTON_PRESSED : BUTTON_HOVER)) : BUTTON_NORMAL;
+    return CheckCollisionPointRec(GetMousePosition(), (Rectangle) {x, y, w, h}) ? (IsMouseButtonReleased(mouse_button) ? BUTTON_RELEASED : (IsMouseButtonDown(mouse_button) ? BUTTON_PRESSED : BUTTON_HOVER)) : BUTTON_NORMAL;
 }
 
 int process_text_input(int focused, char* buffer, int writeable_length, int x, int y, int font_size) {

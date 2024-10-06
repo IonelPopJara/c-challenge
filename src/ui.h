@@ -7,6 +7,7 @@
 #define UI_H
 
 #include "dyn_array.h"
+#include "raylib.h"
 
 typedef enum button_state {
     BUTTON_NORMAL = 0,
@@ -15,7 +16,7 @@ typedef enum button_state {
     BUTTON_RELEASED
 } BUTTON_STATE;
 
-BUTTON_STATE test_button(int x, int y, int w, int h);
+BUTTON_STATE test_button(int x, int y, int w, int h, MouseButton mouse_button);
 
 // NOTE(Tuhkis): I prefer `int` over `_Bool` because `_Bool` introduces secret extra behviour with some compileres.
 int process_text_input(int focused, char* buffer, int writeable_length, int x, int y, int font_size);

@@ -51,3 +51,8 @@ modules.order
 Module.symvers
 Mkfile.old
 dkms.conf
+
+
+# clang cache and format 
+.cache
+.clang-format
