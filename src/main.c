@@ -291,85 +291,6 @@ void draw_body(DAY today) {
             if ((BUTTON_RELEASED == test_button(0,0,GetScreenWidth(),TOP_BAR_HEIGHT,MOUSE_BUTTON_LEFT))) {
                 is_menu_visible = 0;
             }
-            if (is_menu_visible) {
-                // Day Schedule Box
-                DrawRectangle(GetScreenWidth() / 4,
-                              (GetScreenHeight() + 2 * TOP_BAR_HEIGHT) / 4,
-                              GetScreenWidth()/2,GetScreenHeight()/2, 
-                              ACCENT_COLOR1);
-                char str[40];
-                snprintf(str, 40, "Task for %s", is_today?"Today":TextFormat("%d/%d/%d",last_pressed_day.date.day,last_pressed_day.date.month,last_pressed_day.date.year));
-                // center the text in a given rectangle box
-                int text_pos =
-                    (GetScreenWidth() / 4) +
-                    (GetScreenWidth() / 2 - MeasureText(str, text_size)) / 2;
-
-                DrawText(str, text_pos,
-                         (GetScreenHeight() + 2 * TOP_BAR_HEIGHT) / 4 + 10, text_size,
-                         BG_COLOR2);
-
-                // Day Schedule Title Box
-                Rectangle title_box = {
-                    (float)GetScreenWidth() / 4 + 20,
-                    (float)(GetScreenHeight() + 2 * TOP_BAR_HEIGHT) / 4 + (float)GetScreenHeight()/12,
-                    (float)GetScreenWidth() / 2 - 40, (float)GetScreenHeight() / 12};
-
-                DrawRectangleRec(title_box, BORDER_COLOR1);
-
-                Vector2 title_pos = {
-                        .x = (float)(GetScreenWidth()) / 4 + 20 + (float)((GetScreenWidth() / 2) - 40 - (MeasureText("Title", text_size))) / 2,
-                        .y = (float)(GetScreenHeight() + 2 * TOP_BAR_HEIGHT) / 4 +(float)GetScreenHeight() / 12 + ((float)GetScreenHeight() / 12 - text_size) / 2
-                    };
-
-                DrawText("Title", title_pos.x, title_pos.y,
-                         text_size, ColorAlpha(BG_COLOR2, 0.6));
-
-                if (CheckCollisionPointRec(GetMousePosition(), title_box)) mouse_on_title = 1;
-                else mouse_on_title = 0;
-
-                if (mouse_on_title) {
-                    SetMouseCursor(MOUSE_CURSOR_IBEAM);
-                    
-                    int key = GetCharPressed();
-                    while (key > 0){
-                        // NOTE: Only allow keys in range [32..125]
-                        if ((key >= 32) && (key <= 125) && (title_letter_count < SCHEDULE_TEXT_MAX_LEN))
-                        {
-                            title[title_letter_count] = (char)key;
-                            title[title_letter_count + 1] = '\0';
-                            title_letter_count++;
-                        }
-                        key = GetCharPressed();
-                    }
-                    // Todo : Fix Backspace behavior ( Removes multiples characters at once instead of one)
-                    if (IsKeyPressed(KEY_BACKSPACE)){
-                        title_letter_count--;
-                        if (title_letter_count < 0) title_letter_count = 0;
-                        title[title_letter_count] = '\0';
-                    }
-                } else SetMouseCursor(MOUSE_CURSOR_DEFAULT);
-
-                if (MeasureText(title, text_size) > (GetScreenWidth() / 2 - 40) ) {
-                    int new_start = MeasureText(title, text_size) -
-                                  (GetScreenWidth() / 2 - 40);
-                    wrap_title_index++;
-                    DrawText(&title[new_start], title_box.x+5, title_pos.y, text_size, ACCENT_COLOR2);
-                }else{
-                    DrawText(title, title_box.x + 5,title_pos.y,text_size,ACCENT_COLOR2);
-                }
-                if (mouse_on_title) {
-                    CLOCK_TIME now = get_current_clock_local();
-                    if (title_letter_count < SCHEDULE_TITLE_MAX_LEN) {
-                        if (now.second % 2 == 0) {
-                          DrawText("_",title_box.x + 8 + MeasureText(title, text_size),title_box.y + title_box.height - text_size,text_size, ACCENT_COLOR2);
-                        }
-                    }
-                }
-
-            }
-
-            
-            
             int prev_day = current.date.day;
             ++current.date.day;
             validate_day(&current);
@@ -378,7 +299,102 @@ void draw_body(DAY today) {
             }
         }
     }
-}
+    if (is_menu_visible) {
+        // Day Schedule Box
+        DrawRectangle(GetScreenWidth() / 4,
+                      (GetScreenHeight() + 2 * TOP_BAR_HEIGHT) / 4,
+                      GetScreenWidth() / 2, GetScreenHeight() / 2, ACCENT_COLOR1);
+        char str[40];
+        snprintf(str, 40, "Task for %s",
+                 is_today ? "Today"
+                          : TextFormat("%d/%d/%d", last_pressed_day.date.day,
+                                       last_pressed_day.date.month,
+                                       last_pressed_day.date.year));
+        /*
+            Center a object(horizontal or vertical) in a given rectangle box
+            x = X + (W-w)/2
+            x -> centre position , X-> posiiton of rectangle , W = width of rectangle , w = width of  object
+        */
+        int text_pos = (GetScreenWidth() / 4) +
+                       (GetScreenWidth() / 2 - MeasureText(str, text_size)) / 2;
+
+        DrawText(str, text_pos, (GetScreenHeight() + 2 * TOP_BAR_HEIGHT) / 4 + 10,
+                 text_size, BG_COLOR2);
+
+        // Day Schedule Title Box
+        Rectangle title_box = {
+            (float)GetScreenWidth() / 4 + 20,
+            (float)(GetScreenHeight() + 2 * TOP_BAR_HEIGHT) / 4 +
+                (float)GetScreenHeight() / 12,
+            (float)GetScreenWidth() / 2 - 40, (float)GetScreenHeight() / 12};
+
+        DrawRectangleRec(title_box, BORDER_COLOR1);
+
+        Vector2 title_pos = {
+            .x = (float)(GetScreenWidth()) / 4 + 20 +
+                 (float)((GetScreenWidth() / 2) - 40 -
+                         (MeasureText("Title", text_size))) /
+                     2,
+            .y = (float)(GetScreenHeight() + 2 * TOP_BAR_HEIGHT) / 4 +
+                 (float)GetScreenHeight() / 12 +
+                 ((float)GetScreenHeight() / 12 - text_size) / 2};
+
+        DrawText("Title", title_pos.x, title_pos.y, text_size,
+                 ColorAlpha(BG_COLOR2, 0.6));
+
+        if (CheckCollisionPointRec(GetMousePosition(), title_box))
+            mouse_on_title = 1;
+        else
+            mouse_on_title = 0;
+
+        if (mouse_on_title) {
+            SetMouseCursor(MOUSE_CURSOR_IBEAM);
+
+            int key = GetCharPressed();
+            while (key > 0) {
+            // NOTE: Only allow keys in range [32..125]
+                if ((key >= 32) && (key <= 125) && (title_letter_count < SCHEDULE_TITLE_MAX_LEN)) {
+                title[title_letter_count] = (char)key;
+                title[title_letter_count + 1] = '\0';
+                title_letter_count++;
+                if (MeasureText(title, text_size) + text_size + 5 > ((int)title_box.width)) {
+                    wrap_title_index++;
+                } else {
+                    wrap_title_index = 0;
+                }
+            }
+            key = GetCharPressed();
+        }
+            
+        if (IsKeyPressed(KEY_BACKSPACE)) {
+            title_letter_count--;
+            if (title_letter_count < 0)
+                title_letter_count = 0;
+            title[title_letter_count] = '\0';
+          }
+        } else SetMouseCursor(MOUSE_CURSOR_DEFAULT);
+
+        DrawText(&title[wrap_title_index], title_box.x + 5, title_pos.y,
+                 text_size, ACCENT_COLOR2);
+
+        if (mouse_on_title) {
+            CLOCK_TIME now = get_current_clock_local();
+                if (title_letter_count < SCHEDULE_TITLE_MAX_LEN) {
+                    if (now.second % 2 == 0) {
+                        if (wrap_title_index > 0) {
+                            DrawText("_", title_box.width + title_box.x - text_size,
+                                     title_box.y + title_box.height - text_size, text_size,
+                                     ACCENT_COLOR2);
+                        } else {
+                            DrawText("_", title_box.x + 10 + MeasureText(title, text_size),
+                                     title_box.y + title_box.height - text_size, text_size,
+                                     ACCENT_COLOR2);
+                        }
+                    }
+                }
+            }   
+        }
+}   
 
 void truncate_str_after_directory_separator(char *path) {
     for (int i = strlen(path); i >= 0; --i) {

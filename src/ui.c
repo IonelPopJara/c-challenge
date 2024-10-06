@@ -30,6 +30,6 @@ int process_text_input(int focused, char* buffer, int writeable_length, int x, i
 
 int is_any_key_pressed() {
     int p_key = GetKeyPressed();
-    return (p_key >= 32 && p_key <= 125) ? 1 : 0;
+    return (p_key >= 32 && p_key <= 125) ? p_key : 0;
 }
 
