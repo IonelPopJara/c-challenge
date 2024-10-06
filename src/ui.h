@@ -21,5 +21,8 @@ BUTTON_STATE test_button(int x, int y, int w, int h, MouseButton mouse_button);
 // NOTE(Tuhkis): I prefer `int` over `_Bool` because `_Bool` introduces secret extra behviour with some compileres.
 int process_text_input(int focused, char* buffer, int writeable_length, int x, int y, int font_size);
 
+// We Check if any key in range [32..125] is pressed
+int is_any_key_pressed();
+
 #endif // UI_H
 
