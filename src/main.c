@@ -231,7 +231,7 @@ void draw_body(DAY today) {
     static Vector2 last_mouse_pos = {0};
     static DAY last_pressed_day = {0};
     static int mouse_on_title=0;
-    int is_today = 0;
+    static int is_today = 0;
     static char title[SCHEDULE_TITLE_MAX_LEN + 1] = "\0";
     static int title_letter_count = 0;
     static char description[SCHEDULE_TEXT_MAX_LEN + 1] = "\0";
@@ -252,9 +252,6 @@ void draw_body(DAY today) {
             // Override Color if drawing current day
             if (current.date.year == today.date.year && current.date.month == today.date.month && current.date.day == today.date.day) {
                 outline = ACCENT_COLOR1;
-                is_today = 1;
-            } else {
-                is_today=0;
             }
             
             char intstr[3]; // Always remember to leave a slot for the '\n' character
@@ -283,7 +280,12 @@ void draw_body(DAY today) {
                 if (is_menu_visible == 0) {
                     //printf("On %d date\n", current.date.day);
                     is_menu_visible = 1;
-                    last_pressed_day=current;
+                    last_pressed_day = current;
+                    if (current.date.year == today.date.year && current.date.month == today.date.month && current.date.day == today.date.day) {
+                        is_today = 1;
+                    } else {
+                        is_today=0;
+                    }
                 } else if (is_menu_visible == 1 && !mouse_on_title) {
                   is_menu_visible=0;
                 }
@@ -326,14 +328,14 @@ void draw_body(DAY today) {
         Rectangle title_box = {(float)GetScreenWidth() / 4 + 20,
                                (float)(GetScreenHeight() + 2 * TOP_BAR_HEIGHT) /4 + (float)GetScreenHeight() / 12,
                                (float)GetScreenWidth() / 2 - 40,
-                               (float)GetScreenHeight() / 12},
-                  edit_details_box = {
-                    .x = GetScreenWidth() / 4 + 20,
-                    .y = GetScreenHeight()+ 2*TOP_BAR_HEIGHT/4+GetScreenHeight()/12
-                  };
+                               (float)GetScreenHeight() / 12};
+        // Rectangle dit_details_box = {
+        //             .x = GetScreenWidth() / 4 + 20,
+        //             .y = GetScreenHeight()+ 2*TOP_BAR_HEIGHT/4+GetScreenHeight()/12
+        //           };
 
 
-        
+        DrawRectangleRec(title_box, BORDER_COLOR1);
        
 
         Vector2 title_pos = {
