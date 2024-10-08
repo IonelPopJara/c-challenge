@@ -7,7 +7,7 @@
 
 // Please don't mind the spaghetti in the code, I'm italian - M37
 
-// May you find strength to endure what I have done a /wanders
+// May you find strength to endure what I have created /wanders
 
 #include "raylib.h"
 #include "stdio.h" // for printf (and now also snprintf i guess :P)
