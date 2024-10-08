@@ -238,5 +238,9 @@ If you encounter any issues, please write them down here with the solution you f
 
 ## Contributors
 Tuhkis
+
 Marxy37
+
 raskunet
+
+wanders
