@@ -5,7 +5,7 @@
 
 // Have fun serializing this (I'm so sorry again)
 
-#define SCHEDULE_TITLE_MAX_LEN (64)
+#define SCHEDULE_TITLE_MAX_LEN (32)
 #define SCHEDULE_TEXT_MAX_LEN (1024)
 #define DAY_MAX_SCHEDULE_ITEMS (128)
 
@@ -34,12 +34,12 @@ typedef struct schedule_item {
         int hours;
         int minutes;
     } duration;
-    char title[SCHEDULE_TITLE_MAX_LEN];
-    char description[SCHEDULE_TEXT_MAX_LEN];
+    char _title[SCHEDULE_TITLE_MAX_LEN];
+    char _description[SCHEDULE_TEXT_MAX_LEN];
 } SCHEDULE_ITEM;
 
 typedef struct day {
-    struct date {
+    struct date { 
         int month;
         int day;
         int year;
@@ -47,15 +47,21 @@ typedef struct day {
     WEEKDAY weekday;
 } DAY;
 
-typedef struct day_schedule {
-    SCHEDULE_ITEM schedule_item[128];
-    DAY day;
-} DAY_SCHEDULE;
-
 void validate_day(DAY *value);
 
 DAY get_today_local(void);
 CLOCK_TIME get_current_clock_local(void);
+
+int is_day_in_list(DAY *day);
+int is_day_empty(DAY *day);
+
+void add_schedule_item(DAY *day, SCHEDULE_ITEM item);
+void remove_schedule_item(DAY *day, int index);
+
+int first_schedule_item(DAY *day);
+int has_next_schedule_item(DAY *day, CLOCK_TIME current_time);
+
+SCHEDULE_ITEM* get_schedule_item(DAY *day, int index);
 
 #endif // DAY_H
 
