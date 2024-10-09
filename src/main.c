@@ -443,7 +443,7 @@ void draw_body(DAY today) {
         int height = GetScreenHeight();
 
         // Draw the settings window
-        int settings_window_width = 200;
+        int settings_window_width = 300;
         int settings_window_height = 200;
         int settings_window_x = width / 2 - settings_window_width / 2;
         int settings_window_y = height / 2 - settings_window_height / 2;
@@ -455,16 +455,22 @@ void draw_body(DAY today) {
         int caption_y = settings_window_y + 10;
         DrawText("Settings", caption_x - MeasureText("Settings", 20) / 2, caption_y, 20, BG_COLOR1);
 
-        // Draw text above the checkbox
+        // Customizable distance between text and checkbox
+        int distance_between_text_and_checkbox = 10;
+    
+        // Draw text and checkbox on the same horizontal plane
         int checkbox_size = 20;
-        int text_x = settings_window_x + settings_window_width / 2;
-        int text_y = caption_y + caption_height + 10;
-        DrawText("Clock format", text_x - MeasureText("Clock format", 20) / 2, text_y, 20, BG_COLOR1);
+        int text_width = MeasureText("Clock format", 20);
+        int total_width = text_width + distance_between_text_and_checkbox + checkbox_size;
 
-        // Draw checkbox for 24-hour time format
-        int checkbox_x = settings_window_x + settings_window_width / 2 - checkbox_size / 2;
-        int checkbox_y = text_y + checkbox_y + 30;
+        int text_x = settings_window_x + (settings_window_width - total_width) / 2;
+        int text_y = caption_y + caption_height + 30; // Adjust vertical position as needed
+        DrawText("Clock format", text_x, text_y, 20, BG_COLOR1);
+
+        int checkbox_x = text_x + text_width + distance_between_text_and_checkbox;
+        int checkbox_y = text_y + (20 - checkbox_size) / 2; // Center checkbox vertically with text
         DrawRectangle(checkbox_x, checkbox_y, checkbox_size, checkbox_size, BG_COLOR1);
+
         if (app.use_24h_format) {
             DrawLine(checkbox_x, checkbox_y, checkbox_x + checkbox_size, checkbox_y + checkbox_size, ACCENT_COLOR2);
             DrawLine(checkbox_x + checkbox_size, checkbox_y, checkbox_x, checkbox_y + checkbox_size, ACCENT_COLOR2);
