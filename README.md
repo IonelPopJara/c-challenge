@@ -12,12 +12,12 @@ This idea was proposed by [Tuhkis](https://github.com/Tuhkis) on the Mults' Disc
 
 1. Each developer will have 48 hours to make changes to the codebase.
 
--   The time starts when the developer successfully builds the project.
+- The time starts when the developer successfully builds the project.
 
 2. The developer must not communicate with the previous developer.
 
--   Technical comments in the code **are allowed**. (e.g., `// This function calculates does something`)
--   Comments that give hints or instructions **are NOT allowed**. (e.g., `// You should do this`, `// Add this feature`)
+- Technical comments in the code **are allowed**. (e.g., `// This function calculates does something`)
+- Comments that give hints or instructions **are NOT allowed**. (e.g., `// You should do this`, `// Add this feature`)
 
 3. The developer **must not** communicate with the next developer.
 4. In case of technical issues, the developer can ask for help in the Discord server. Ideally, a memeber who already finished their turn should help.
@@ -39,17 +39,17 @@ This idea was proposed by [Tuhkis](https://github.com/Tuhkis) on the Mults' Disc
 └───src
 ```
 
--   **.github/workflows/**: Contains GitHub Actions workflows for building the project.
--  **.vscode/**: Contains settings for Visual Studio Code.
--   **assets/**: Contains program assets such as images and sounds.
--   **docs/**: Documentation related to the project.
--   **external/**: Contains external libraries used in the project. Currently, only Raylib is included.
--   **src/**: Contains all source files (`.c`) and header files (`.h`).
+- **.github/workflows/**: Contains GitHub Actions workflows for building the project.
+- **.vscode/**: Contains settings for Visual Studio Code.
+- **assets/**: Contains program assets such as images and sounds.
+- **docs/**: Documentation related to the project.
+- **external/**: Contains external libraries used in the project. Currently, only Raylib is included.
+- **src/**: Contains all source files (`.c`) and header files (`.h`).
 
 ### Adding Files
 
--   When adding new source code, place them in the `src/` folder.
--   Assets like images or sounds should be placed in the `assets/` folder, under the appropriate subdirectory (e.g., `images/` or `sounds/`).
+- When adding new source code, place them in the `src/` folder.
+- Assets like images or sounds should be placed in the `assets/` folder, under the appropriate subdirectory (e.g., `images/` or `sounds/`).
 
 ## Setup
 
@@ -57,14 +57,14 @@ This idea was proposed by [Tuhkis](https://github.com/Tuhkis) on the Mults' Disc
 
 Before setting up the project, ensure you have the following tools installed:
 
--   C Compiler (e.g., GCC)
--   CMake (for building the project)
--   Make (for building dependencies)
--   MinGW (for Windows users)
--   SDL2 (for graphics) (Linux and macOS only)
--   A code editor or IDE of your choice. I recommend VSCode since this project has a folder already set up for it.
-    -   You will need to install the C/C++ extension for VSCode.
-    -   VSCode should detect the needed tools and prompt you to install them.
+- C Compiler (e.g., GCC)
+- CMake (for building the project)
+- Make (for building dependencies)
+- MinGW (for Windows users)
+- SDL2 (for graphics) (Linux and macOS only)
+- A code editor or IDE of your choice. I recommend VSCode since this project has a folder already set up for it.
+  - You will need to install the C/C++ extension for VSCode.
+  - VSCode should detect the needed tools and prompt you to install them.
 
 #### Windows
 
@@ -237,6 +237,7 @@ If you are running the project before any contributions, you should see a window
 If you encounter any issues, please write them down here with the solution you found.
 
 ## Contributors
+
 Tuhkis
 
 Marxy37
@@ -244,3 +245,5 @@ Marxy37
 raskunet
 
 wanders
+
+Flam30
