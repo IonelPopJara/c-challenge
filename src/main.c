@@ -9,6 +9,14 @@
 
 // May you find strength to endure what I have created /wanders
 
+/* KNOWN BUGS:
+    * 1.
+    * When cycling through the months, there is always a wrong pair. Meaning it will say May twice in a row
+    * and not mention April. It shows the dates correctly, and they change, but the month names
+    * are wrong. It's different months for each year (kinda). Duplicated months:
+    * 2025 - May, 2026 - October, 2027 - July, 2028 - March, 2029 - March again ...
+*/
+
 #include "raylib.h"
 #include "stdio.h" // for printf (and now also snprintf i guess :P)
 #include "string.h" // for strcopy and strcat
@@ -186,6 +194,11 @@ void arrows_buttons(Sound *click_sound) {
     }
 }
 
+/*
+    * This function draws the settings button in the top bar.   
+    * Opens settings menu when pressed (sets settings_open to 1/0).
+*/
+
 #define SETTINGS_WIDTH (48)
 #define SETTINGS_ICON_PADDING_OUT (4)
 #define SETTINGS_ICON_PADDING_IN (4)
@@ -238,6 +251,11 @@ void settings_button(Sound *click_sound) {
     DrawCircle(gear_center_x, gear_center_y, inner_circle_radius, BG_COLOR2);
 }
 
+/*
+    * This function draws the time label in the top bar.
+    * It also allows the user to toggle between 24h and 12h formats by clicking on the time label.
+    * The time label is updated every second.
+*/
 #define DATE_YEAR_LABEL_SIZE (48)
 #define TIME_LABEL_SIZE (48)
 #define TIME_LABEL_PERIOD_SIZE (24)
@@ -307,7 +325,12 @@ const char *MONTH_NAMES_FULL[] = {
     "November", "December"
 };
 
-
+/*
+    * This function draws the top bar of the app.
+    * It contains the home, view, arrows, settings button and the time label.
+    * It also contains the current month and year.
+    * 
+*/
 void draw_top_bar(Sound *click_sound) {
     DrawRectangle(0, 0, GetScreenWidth(), TOP_BAR_HEIGHT, ACCENT_COLOR1);
     home_button(click_sound);
@@ -323,7 +346,6 @@ void draw_top_bar(Sound *click_sound) {
     }
 
     // Determine which month names array to use based on screen width
-    //Variable to hold minimum width for full month names
     const int min_width = 1000;
     const char **month_names = (GetScreenWidth() > min_width) ? MONTH_NAMES_FULL : MONTH_NAMES;
 
@@ -353,6 +375,11 @@ int find_ideal_text_size(char *text, int max_width) {
     return text_size;
 }
 
+/*
+    * This function draws the body of the app.
+    * It contains the days of the week and the days of the month.
+    * It also contains the schedule items for each day.
+*/
 #define BODY_PADDING_OUT (8)
 #define BODY_PADDING_IN (2)
 #define DATE_OUTLINE (4)
