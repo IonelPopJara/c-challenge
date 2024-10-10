@@ -63,6 +63,10 @@ DAY get_today_local(void) {
     return ret;
 }
 
+/**
+ * Get the current local time
+ * @return The current local time
+ */
 CLOCK_TIME get_current_clock_local(void) {
     CLOCK_TIME ret = {0};
 
@@ -88,6 +92,15 @@ CLOCK_TIME get_current_clock_local(void) {
  * (some1 probably should do something about it)
  * 
  * /wanders
+ * 
+ * ==============================================
+ * The behemoth was witnessed and 50 lines were cut off :D
+ * 
+ * It's still a mess, but at least it's a smaller mess now 
+ * 
+ * remove_schedule_item() used in the delete button for each item (main.c)
+ * 
+ * /Flameo(Flam30)
  */
 
 typedef struct node {
@@ -99,151 +112,129 @@ typedef struct node {
 
 NODE *head = NULL;
 
+// Helper: Get the key for a given day
 unsigned int get_key(DAY day) {
     return day.date.day + day.date.month * 100 + day.date.year * 10000;
 }
 
+// Helper: Find the node for a given day key
+NODE* find_node(unsigned int key) {
+    NODE *current = head;
+    while (current != NULL) {
+        if (current->key == key) {
+            return current;
+        }
+        current = current->next;
+    }
+    return NULL;
+}
+
+// Helper: Compare two CLOCK_TIME values
+int compare_time(CLOCK_TIME t1, CLOCK_TIME t2) {
+    if (t1.hour != t2.hour) {
+        return t1.hour - t2.hour;
+    }
+    return t1.minute - t2.minute;
+}
+
+// Check if the day exists in the list
 int is_day_in_list(DAY *day) {
-    unsigned int key = get_key(*day);
-    NODE *current = head;
-    while (current != NULL) {
-        if (current->key == key) {
-            return 1;
-        }
-        current = current->next;
-    }
-    return 0;
-}
-
-void add_schedule_item(DAY *day, SCHEDULE_ITEM item) {
-    unsigned int key = get_key(*day);
-    NODE *current = head;
-    while (current != NULL) {
-        if (current->key == key) {
-            current->value[current->schedule_item_count] = item;
-            current->schedule_item_count++;
-            return;
-        }
-        current = current->next;
-    }
-    NODE *new_node = malloc(sizeof(NODE));
-    new_node->key = key;
-    new_node->value[0] = item;
-    new_node->schedule_item_count = 1;
-    new_node->next = head;
-    head = new_node;
-}
-
-void remove_schedule_item(DAY *day, int index) {
-    unsigned int key = get_key(*day);
-    NODE *current = head;
-    while (current != NULL) {
-        if (current->key == key) {
-            for (int i = index; i < current->schedule_item_count - 1; ++i) {
-                current->value[i] = current->value[i + 1];
-            }
-            current->schedule_item_count--;
-            return;
-        }
-        current = current->next;
-    }
-}
-
-int is_day_empty(DAY *day) {
-    unsigned int key = get_key(*day);
-    NODE *current = head;
-    while (current != NULL) {
-        if (current->key == key) {
-            return current->schedule_item_count == 0;
-        }
-        current = current->next;
-    }
-    return 1;
+    return find_node(get_key(*day)) != NULL;
 }
 
 /**
- * @return the index of the first schedule item of the day, or -1 if there are none
- */
-int first_schedule_item(DAY *day) {
+ * Add a schedule item to the day
+ * @param day The day to add the schedule item to
+ * @param item The schedule item to add
+*/ 
+void add_schedule_item(DAY *day, SCHEDULE_ITEM item) {
     unsigned int key = get_key(*day);
-    NODE *current = head;
-    int first_index = -1;
-    SCHEDULE_ITEM ret = {0};
-    ret.begin_time.hour = 25; // later than any possible hour
-    while (current != NULL) {
-        if (current->key == key) {
-            for (int i = 0; i < current->schedule_item_count; ++i) {
-                if (current->value[i].begin_time.hour < ret.begin_time.hour) {
-                    ret = current->value[i];
-                    first_index = i;
-                } else if (current->value[i].begin_time.hour == ret.begin_time.hour) {
-                    if (current->value[i].begin_time.minute < ret.begin_time.minute) {
-                        ret = current->value[i];
-                        first_index = i;
-                    }
-                }
-            }
-            return first_index;
+    NODE *node = find_node(key);
+
+    if (node != NULL) {
+        if (node->schedule_item_count < DAY_MAX_SCHEDULE_ITEMS) {
+            node->value[node->schedule_item_count++] = item;
         }
-        current = current->next;
+    } else {
+        NODE *new_node = malloc(sizeof(NODE));
+        new_node->key = key;
+        new_node->value[0] = item;
+        new_node->schedule_item_count = 1;
+        new_node->next = head;
+        head = new_node;
+    }
+}
+
+/**
+ * Remove a schedule item from the day
+ * @param day The day to remove the schedule item from
+ * @param index The index of the schedule item to remove
+*/ 
+void remove_schedule_item(DAY *day, int index) {
+    unsigned int key = get_key(*day);
+    NODE *node = find_node(key);
+    if (node != NULL && index >= 0 && index < node->schedule_item_count) {
+        for (int i = index; i < node->schedule_item_count - 1; ++i) {
+            node->value[i] = node->value[i + 1];
+        }
+        node->schedule_item_count--;
+    }
+}
+
+/**
+ * Check if a day has no schedule items
+ * @return 1 if the day is empty, 0 otherwise
+*/
+int is_day_empty(DAY *day) {
+    NODE *node = find_node(get_key(*day));
+    return (node == NULL || node->schedule_item_count == 0);
+}
+
+/** 
+ * Find the index of the first schedule item in a day
+ * @return -1 if there are no schedule items in the day
+*/
+int first_schedule_item(DAY *day) {
+    NODE *node = find_node(get_key(*day));
+    if (node == NULL || node->schedule_item_count == 0) return -1;
+
+    int first_index = 0;
+    for (int i = 1; i < node->schedule_item_count; ++i) {
+        if (compare_time(node->value[i].begin_time, node->value[first_index].begin_time) < 0) {
+            first_index = i;
+        }
     }
     return first_index;
 }
 
 /**
- * @return the index of the next schedule item of the day, or -1 if there are none
- */
+ * Find the index of the next schedule item in a day, after a given time
+ * @return -1 if there are no more schedule items
+ *  
+*/ 
 int has_next_schedule_item(DAY *day, CLOCK_TIME current_time) {
-    unsigned int key = get_key(*day);
-    NODE *current = head;
-    SCHEDULE_ITEM earliest = {0};
-    earliest.begin_time.hour = 25; // later than any possible hour
-    int ret = -1;
-    while (current != NULL) {
+    NODE *node = find_node(get_key(*day));
+    if (node == NULL || node->schedule_item_count == 0) return -1;
 
-        // dont look here :d
-        
-        if (current->key == key) {           
-            for (int i = 0; i < current->schedule_item_count; ++i) {
-                if (current->value[i].begin_time.hour > current_time.hour) {
-                    if (current->value[i].begin_time.hour < earliest.begin_time.hour) {
-                        earliest = current->value[i];
-                        ret = i;
-                    } else if (current->value[i].begin_time.hour == earliest.begin_time.hour) {
-                        if (current->value[i].begin_time.minute < earliest.begin_time.minute) {
-                            earliest = current->value[i];
-                            ret = i;
-                        }
-                    }
-                } else if (current->value[i].begin_time.hour == current_time.hour) {
-                    if (current->value[i].begin_time.minute > current_time.minute) {
-                        if (current->value[i].begin_time.hour < earliest.begin_time.hour) {
-                            earliest = current->value[i];
-                            ret = i;
-                        } else if (current->value[i].begin_time.hour == earliest.begin_time.hour) {
-                            if (current->value[i].begin_time.minute < earliest.begin_time.minute) {
-                                earliest = current->value[i];
-                                ret = i;
-                            }
-                        }
-                    }
-                }
+    int next_index = -1;
+    for (int i = 0; i < node->schedule_item_count; ++i) {
+        if (compare_time(node->value[i].begin_time, current_time) > 0) {
+            if (next_index == -1 || compare_time(node->value[i].begin_time, node->value[next_index].begin_time) < 0) {
+                next_index = i;
             }
-            return ret;
         }
-        current = current->next;
     }
-    return ret;
+    return next_index;
 }
 
+/**
+ * Get a specific schedule item by index
+ * @return NULL if the index is out of bounds
+*/ 
 SCHEDULE_ITEM* get_schedule_item(DAY *day, int index) {
-    unsigned int key = get_key(*day);
-    NODE *current = head;
-    while (current != NULL) {
-        if (current->key == key) {
-            return &current->value[index];
-        }
-        current = current->next;
+    NODE *node = find_node(get_key(*day));
+    if (node != NULL && index >= 0 && index < node->schedule_item_count) {
+        return &node->value[index];
     }
     return NULL;
 }

@@ -9,12 +9,15 @@
 
 // May you find strength to endure what I have created /wanders
 
-/* KNOWN BUGS:
-    * 1.
-    * When cycling through the months, there is always a wrong pair. Meaning it will say May twice in a row
-    * and not mention April. It shows the dates correctly, and they change, but the month names
-    * are wrong. It's different months for each year (kinda). Duplicated months:
-    * 2025 - May, 2026 - October, 2027 - July, 2028 - March, 2029 - March again ...
+/** KNOWN BUGS:
+ * 1.
+ * When cycling through the months, there is always a wrong pair. Meaning it will say May twice in a row
+ * and not mention April. It shows the dates correctly, and they change, but the month names
+ * are wrong. It's different months for each year (kinda). Duplicated months:
+ * 2025 - May, 2026 - October, 2027 - July, 2028 - March, 2029 - March again ...
+ * 
+ * 2.
+ * Mouse inputs perpetuate through frames and interact with ui more than once :D
 */
 
 #include "raylib.h"
@@ -194,9 +197,9 @@ void arrows_buttons(Sound *click_sound) {
     }
 }
 
-/*
-    * This function draws the settings button in the top bar.   
-    * Opens settings menu when pressed (sets settings_open to 1/0).
+/**
+ * This function draws the settings button in the top bar.   
+ * Opens settings menu when pressed (sets settings_open to 1/0).
 */
 
 #define SETTINGS_WIDTH (48)
@@ -251,10 +254,10 @@ void settings_button(Sound *click_sound) {
     DrawCircle(gear_center_x, gear_center_y, inner_circle_radius, BG_COLOR2);
 }
 
-/*
-    * This function draws the time label in the top bar.
-    * It also allows the user to toggle between 24h and 12h formats by clicking on the time label.
-    * The time label is updated every second.
+/**
+ * This function draws the time label in the top bar.
+ * It also allows the user to toggle between 24h and 12h formats by clicking on the time label.
+ * The time label is updated every second.
 */
 #define DATE_YEAR_LABEL_SIZE (48)
 #define TIME_LABEL_SIZE (48)
@@ -325,11 +328,10 @@ const char *MONTH_NAMES_FULL[] = {
     "November", "December"
 };
 
-/*
-    * This function draws the top bar of the app.
-    * It contains the home, view, arrows, settings button and the time label.
-    * It also contains the current month and year.
-    * 
+/**
+ * This function draws the top bar of the app.
+ * It contains the home, view, arrows, settings button and the time label.
+ * It also contains the current month and year. 
 */
 void draw_top_bar(Sound *click_sound) {
     DrawRectangle(0, 0, GetScreenWidth(), TOP_BAR_HEIGHT, ACCENT_COLOR1);
@@ -375,10 +377,10 @@ int find_ideal_text_size(char *text, int max_width) {
     return text_size;
 }
 
-/*
-    * This function draws the body of the app.
-    * It contains the days of the week and the days of the month.
-    * It also contains the schedule items for each day.
+/**
+ * This function draws the body of the app.
+ * It contains the days of the week and the days of the month.
+ * It also contains the schedule items for each day.
 */
 #define BODY_PADDING_OUT (8)
 #define BODY_PADDING_IN (2)
@@ -387,6 +389,8 @@ int find_ideal_text_size(char *text, int max_width) {
 #define DATE_PADDING (4)
 #define MIN_DAY_MENU_WIDTH (80)
 #define MIN_DAY_MENU_HEIGHT (40)
+#define BUTTON_SIZE 20 // Small square button size
+
 void draw_body(DAY today) {
     int rows = app.view_type == WEEK_VIEW ? 1 : 6;
     
@@ -670,13 +674,27 @@ void draw_body(DAY today) {
          * sue me, i used AI 3x
          * 
          * /wanders
+         * 
+         * =================================================
+         * Added a delete button for each item,
+         * calls remove_schedule_item() when clicked.
+         * 
+         * FIXME: Can add more than 3 items, but only 3 are displayed.
+         *        The rest are stored in the linked list (day.c) and will show up when an item is deleted.
+         *        ALSO, the mouse click to delete an item closes the menu.. had a lot of trouble
+         *        with these inputs that perpetuate through frames and just couldn't fix it ://
+         * 
+         * Still a mess, good luck :)
+         *       
+         * /Flameo(Flam30)
          */
-        if (is_day_in_list(&last_pressed_day) && !is_day_empty(&last_pressed_day)) {
+        
+         if (is_day_in_list(&last_pressed_day) && !is_day_empty(&last_pressed_day)) {
             SCHEDULE_ITEM *first_item, *second_item, *third_item;
             int first_index, second_index, third_index = -1;
             first_index = first_schedule_item(&last_pressed_day);
             first_item = get_schedule_item(&last_pressed_day, first_index);
-            
+
             second_index = has_next_schedule_item(&last_pressed_day, first_item->begin_time);
             if (second_index != -1) {
                 second_item = get_schedule_item(&last_pressed_day, second_index);
@@ -685,63 +703,95 @@ void draw_body(DAY today) {
                     third_item = get_schedule_item(&last_pressed_day, third_index);
                 }
             }
+            
             // Calculate the y position for the items based on the title box
             float item_start_y = title_box.y + title_box.height + 10; // 10 pixels padding
-
+            float button_size = 20; // Small square button size
+            
             // Draw the first item
-            DrawRectangleRec((Rectangle){.x = title_box.x,
-                                         .y = item_start_y,
-                                         .width = title_box.width,
-                                         .height = title_box.height},
-                            BORDER_COLOR1);
-
+            DrawRectangleRec((Rectangle){.x = title_box.x, .y = item_start_y, .width = title_box.width, .height = title_box.height}, BORDER_COLOR1);
             draw_centered_text(first_item->_title, title_box.x, item_start_y, title_box.width, title_box.height / 2, text_size, BG_COLOR2);
+            
+            // Calculate the position for the delete button in the top right corner of the first item
+            Rectangle delete_button_first = { 
+                title_box.x + title_box.width - BUTTON_SIZE - 5,  // X position
+                item_start_y + 5,  // Y position (5 pixels from the top)
+                BUTTON_SIZE, 
+                BUTTON_SIZE 
+            };
 
-            // Draw the starting time and duration
+            // Draw the delete button
+            DrawRectangleRec(delete_button_first, RED); // Draw delete button in red
+
+            // Detect if the delete button for the first item is clicked
+            if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON) && CheckCollisionPointRec(GetMousePosition(), delete_button_first)) {
+                remove_schedule_item(&last_pressed_day, first_index); // Delete the first item
+            }
+
+            // Draw the starting time and duration for the first item
             char start_time_str[6], duration_str[10];
             format_time(first_item->begin_time, start_time_str);
             sprintf(duration_str, "%02d:%02d", first_item->duration.hours, first_item->duration.minutes);
             char time_duration_str[40];
             sprintf(time_duration_str, "Start: %s, Duration: %s", start_time_str, duration_str);
+            draw_centered_text(time_duration_str, title_box.x, item_start_y + title_box.height / 2, title_box.width, title_box.height / 2, text_size, BG_COLOR1);
 
-            draw_centered_text(time_duration_str, title_box.x, item_start_y + title_box.height / 2, title_box.width, title_box.height / 2, text_size, BG_COLOR1); // Different color for time and duration
-
-            // Is there a second item?
+            // Draw the second item, if it exists
             if (second_index != -1) {
-                // Draw the second item
-                DrawRectangleRec((Rectangle){.x = title_box.x,
-                                             .y = item_start_y + title_box.height + 10, // 10 pixels padding
-                                             .width = title_box.width,
-                                             .height = title_box.height},
-                                BORDER_COLOR1);
+                float second_item_y = item_start_y + title_box.height + 10; // Position for the second item
+                DrawRectangleRec((Rectangle){.x = title_box.x, .y = second_item_y, .width = title_box.width, .height = title_box.height}, BORDER_COLOR1);
+                draw_centered_text(second_item->_title, title_box.x, second_item_y, title_box.width, title_box.height / 2, text_size, BG_COLOR2);
 
-                draw_centered_text(second_item->_title, title_box.x, item_start_y + title_box.height + 10, title_box.width, title_box.height / 2, text_size, BG_COLOR2);
+                // Calculate the position for the delete button in the top right corner of the item
+                Rectangle delete_button_second = { 
+                    title_box.x + title_box.width - BUTTON_SIZE - 5,  // X position
+                    second_item_y + 5,  // Y position (5 pixels from the top)
+                    BUTTON_SIZE, 
+                    BUTTON_SIZE 
+                };
+
+                // Draw the delete button
+                DrawRectangleRec(delete_button_second, RED);
+
+                // Detect click on the second item's delete button
+                if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON) && CheckCollisionPointRec(GetMousePosition(), delete_button_second)) {
+                    remove_schedule_item(&last_pressed_day, second_index); // Delete the second item
+                }
 
                 // Draw the starting time and duration for the second item
                 format_time(second_item->begin_time, start_time_str);
                 sprintf(duration_str, "%02d:%02d", second_item->duration.hours, second_item->duration.minutes);
                 sprintf(time_duration_str, "Start: %s, Duration: %s", start_time_str, duration_str);
-
-                draw_centered_text(time_duration_str, title_box.x, item_start_y + title_box.height + 10 + title_box.height / 2, title_box.width, title_box.height / 2, text_size, BG_COLOR1); // Different color for time and duration
+                draw_centered_text(time_duration_str, title_box.x, second_item_y + title_box.height / 2, title_box.width, title_box.height / 2, text_size, BG_COLOR1);
             }
 
-            // Is there a third item?
+            // Draw the third item, if it exists
             if (third_index != -1) {
-                // Draw the third item
-                DrawRectangleRec((Rectangle){.x = title_box.x,
-                                             .y = item_start_y + 2 * (title_box.height + 10), // 10 pixels padding
-                                             .width = title_box.width,
-                                             .height = title_box.height},
-                                BORDER_COLOR1);
+                float third_item_y = item_start_y + 2 * (title_box.height + 10); // Position for the third item
+                DrawRectangleRec((Rectangle){.x = title_box.x, .y = third_item_y, .width = title_box.width, .height = title_box.height}, BORDER_COLOR1);
+                draw_centered_text(third_item->_title, title_box.x, third_item_y, title_box.width, title_box.height / 2, text_size, BG_COLOR2);
 
-                draw_centered_text(third_item->_title, title_box.x, item_start_y + 2 * (title_box.height + 10), title_box.width, title_box.height / 2, text_size, BG_COLOR2);
+                // Calculate the position for the delete button in the top right corner of the item
+                Rectangle delete_button_third = { 
+                    title_box.x + title_box.width - BUTTON_SIZE - 5,  // X position
+                    third_item_y + 5,  // Y position (5 pixels from the top)
+                    BUTTON_SIZE, 
+                    BUTTON_SIZE 
+                };
+
+                // Draw the delete button
+                DrawRectangleRec(delete_button_third, RED);
+
+                // Detect click on the third item's delete button
+                if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON) && CheckCollisionPointRec(GetMousePosition(), delete_button_third)) {
+                    remove_schedule_item(&last_pressed_day, third_index); // Delete the third item
+                }
 
                 // Draw the starting time and duration for the third item
                 format_time(third_item->begin_time, start_time_str);
                 sprintf(duration_str, "%02d:%02d", third_item->duration.hours, third_item->duration.minutes);
                 sprintf(time_duration_str, "Start: %s, Duration: %s", start_time_str, duration_str);
-
-                draw_centered_text(time_duration_str, title_box.x, item_start_y + 2 * (title_box.height + 10) + title_box.height / 2, title_box.width, title_box.height / 2, text_size, BG_COLOR1); // Different color for time and duration
+                draw_centered_text(time_duration_str, title_box.x, third_item_y + title_box.height / 2, title_box.width, title_box.height / 2, text_size, BG_COLOR1);
             }
         }
 
@@ -750,21 +800,21 @@ void draw_body(DAY today) {
 
         if (mouse_on_title) {
             CLOCK_TIME now = get_current_clock_local();
-                if (title_letter_count < SCHEDULE_TITLE_MAX_LEN) {
-                    if (now.second % 2 == 0) {
-                        if (wrap_title_index > 0) {
-                            DrawText("_", title_box.width + title_box.x - text_size,
-                                     title_box.y + title_box.height - text_size, text_size,
-                                     ACCENT_COLOR2);
-                        } else {
-                            DrawText("_", title_box.x + 10 + MeasureText(title, text_size),
-                                     title_box.y + title_box.height - text_size, text_size,
-                                     ACCENT_COLOR2);
-                        }
+            if (title_letter_count < SCHEDULE_TITLE_MAX_LEN) {
+                if (now.second % 2 == 0) {
+                    if (wrap_title_index > 0) {
+                        DrawText("_", title_box.width + title_box.x - text_size,
+                                    title_box.y + title_box.height - text_size, text_size,
+                                    ACCENT_COLOR2);
+                    } else {
+                        DrawText("_", title_box.x + 10 + MeasureText(title, text_size),
+                                    title_box.y + title_box.height - text_size, text_size,
+                                    ACCENT_COLOR2);
                     }
                 }
-            }   
-        }
+            }
+        }   
+    }
 }   
 
 void truncate_str_after_directory_separator(char *path) {
