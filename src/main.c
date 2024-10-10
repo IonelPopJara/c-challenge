@@ -299,6 +299,14 @@ const char *MONTH_NAMES[] = {
     "Aug.", "Sept.", "Oct.", 
     "Nov.", "Dec."
 };
+// Full month names for use when app is maximized
+const char *MONTH_NAMES_FULL[] = {
+    "January", "February", "March",
+    "April", "May", "June", "July",
+    "August", "September", "October",
+    "November", "December"
+};
+
 
 void draw_top_bar(Sound *click_sound) {
     DrawRectangle(0, 0, GetScreenWidth(), TOP_BAR_HEIGHT, ACCENT_COLOR1);
@@ -313,9 +321,18 @@ void draw_top_bar(Sound *click_sound) {
         current.date.month += 1;
         validate_day(&current);
     }
-    char date_year_str[14]; // Always remember to leave a slot for the '\n' character
-    snprintf(date_year_str, 14, "%s %d", MONTH_NAMES[current.date.month - 1], current.date.year);
+
+    // Determine which month names array to use based on screen width
+    //Variable to hold minimum width for full month names
+    const int min_width = 1000;
+    const char **month_names = (GetScreenWidth() > min_width) ? MONTH_NAMES_FULL : MONTH_NAMES;
+
+    //char date_year_str[14]; // Always remember to leave a slot for the '\n' character
+    //snprintf(date_year_str, 14, "%s %d", MONTH_NAMES[current.date.month - 1], current.date.year);
     
+    char date_year_str[20]; // Adjusted size to accommodate longer month names
+    snprintf(date_year_str, sizeof(date_year_str), "%s %d", month_names[current.date.month - 1], current.date.year);
+
     DrawText(date_year_str,
         GetScreenWidth() / 2 - MeasureText(date_year_str, DATE_YEAR_LABEL_SIZE) / 2,
         TOP_BAR_HEIGHT - TOP_BAR_PADDING - DATE_YEAR_LABEL_SIZE, 
