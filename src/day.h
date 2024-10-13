@@ -11,6 +11,7 @@
 
 #define DAYS_IN_WEEK (7)
 #define WEEKS_IN_MONTH (4)
+#define MONTHS_IN_YEAR (12)
 
 typedef enum weekday {
     MONDAY, // I'll begin with Monday. Sue me.
@@ -62,6 +63,8 @@ int first_schedule_item(DAY *day);
 int has_next_schedule_item(DAY *day, CLOCK_TIME current_time);
 
 SCHEDULE_ITEM* get_schedule_item(DAY *day, int index);
+
+int get_schedule_item_count(DAY *day);
 
 #endif // DAY_H
 
