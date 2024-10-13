@@ -238,3 +238,12 @@ SCHEDULE_ITEM* get_schedule_item(DAY *day, int index) {
     }
     return NULL;
 }
+
+/*
+ * Get the number of schedule items in a day
+ * @return int - the number of schedule items 
+*/ 
+int get_schedule_item_count(DAY *day) {
+    NODE *node = find_node(get_key(*day));
+    return (node == NULL) ? 0 : node->schedule_item_count;
+}

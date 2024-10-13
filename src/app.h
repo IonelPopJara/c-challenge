@@ -5,7 +5,8 @@
 
 typedef enum app_view {
     WEEK_VIEW,
-    MONTH_VIEW
+    MONTH_VIEW,
+    YEAR_VIEW
 } APP_VIEW;
 
 typedef struct app_state {
