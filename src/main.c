@@ -41,6 +41,7 @@
 #include "app.h"
 #include "day.h"
 #include "dyn_array.h"
+// this is the old color scheme if ppl want to use it. it's spooky season so i changed the color scheme
 // #include "classic_style.h"
 #include "spooky_style.h"
 #include "ui.h"
