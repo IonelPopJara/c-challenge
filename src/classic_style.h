@@ -1,5 +1,5 @@
-#ifndef STYLE_H
-#define STYLE_H
+#ifndef CLASSIC_STYLE_H
+#define CLASSIC_STYLE_H
 
 #include "raylib.h"
 
@@ -14,5 +14,5 @@
 #define BORDER_COLOR1 ((Color) {200, 200, 200, 255})
 #define BORDER_COLOR2 ((Color) {150, 150, 150, 255})
 
-#endif // STYLE_H
+#endif // CLASSIC_STYLE_H
 
