@@ -682,10 +682,10 @@ void draw_body(DAY today) {
         int gif_window_y = (GetScreenHeight() - gif_window_height)/2;
 
         // Draw rectangle
-        DrawRectangle(gif_window_x, gif_window_y, gif_window_width, gif_window_height, BG_COLOR1);
+        DrawRectangle(gif_window_x, gif_window_y, gif_window_width, gif_window_height, BLACK);
 
-        // Make a close button - same as below
-        int close_button_size = 20;
+        // Make a close button - same as below just bigger
+        int close_button_size = 40;
         int close_button_x = gif_window_x + gif_window_width - close_button_size - 10;
         int close_button_y = gif_window_y + 10;
         DrawRectangle(close_button_x, close_button_y, close_button_size, close_button_size, BG_COLOR1);
