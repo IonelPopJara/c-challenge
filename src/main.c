@@ -41,7 +41,8 @@
 #include "app.h"
 #include "day.h"
 #include "dyn_array.h"
-#include "style.h"
+// #include "classic_style.h"
+#include "spooky_style.h"
 #include "ui.h"
 #include "util.h"
 #include "math.h"
@@ -1179,7 +1180,7 @@ int main(int argc, char **argv) {
                 DrawTexture(tex_party_parrot,
                             (GetScreenWidth() - tex_party_parrot.width)/2,
                             (GetScreenHeight() - tex_party_parrot.height)/2,
-                            BG_COLOR1);
+                            WHITE);
             }
 
         EndDrawing();
