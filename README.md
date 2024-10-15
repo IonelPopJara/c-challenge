@@ -70,7 +70,7 @@ Before setting up the project, ensure you have the following tools installed:
 
 Scoop is a command-line installer for Windows that allows you to install software from the command line. It is recommended use it to install the required tools.
 
-To install scoop, run the following command in PowerShell as an administrator:
+To install scoop, run the following command in PowerShell:
 
 ```powershell
 Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
@@ -249,3 +249,5 @@ wanders
 Flam30
 
 eug-lena
+
+teo :)
