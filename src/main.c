@@ -11,6 +11,11 @@
 
 // I DID NOT USE ANY AI!!!!!!! 0 AI !! /eug-lena
 
+/**
+ * With all due respect, what the fuck.
+ * - teo
+ */
+
 /** KNOWN BUGS:
  * 1.
  * When cycling through the months, there is always a wrong pair. Meaning it will say May twice in a row
@@ -327,6 +332,35 @@ void settings_button(Sound *click_sound) {
     DrawCircle(gear_center_x, gear_center_y, inner_circle_radius, BG_COLOR2);
 }
 
+// Defines for the function below
+#define TAKE_BREAK_WIDTH (220)
+#define TAKE_BREAK_PADDING_OUT (4)
+#define TAKE_BREAK_PADDING_IN (4)
+#define TAKE_BREAK_X_POS (SETTINGS_X_POS + 2 * SETTINGS_WIDTH + 2 * SETTINGS_ICON_PADDING_OUT)
+#define TAKE_BREAK_Y_POS (TOP_BAR_PADDING)
+
+static int take_break_active = 0;
+
+/**
+ * This function adds the "Take a break" button to top bar.
+ * It takes you to a different tab where you can forget your worries (tasks) and watch a bird dance.
+ */
+void take_break_button(Sound *click_sound) {
+    DrawRectangle(TAKE_BREAK_X_POS, TAKE_BREAK_Y_POS, TAKE_BREAK_WIDTH, TOP_BAR_HEIGHT - 2 * TOP_BAR_PADDING, ACCENT_COLOR2);
+    if (BUTTON_RELEASED == test_button(TAKE_BREAK_X_POS, TAKE_BREAK_Y_POS, TAKE_BREAK_WIDTH, TOP_BAR_HEIGHT - 2 * TOP_BAR_PADDING,MOUSE_BUTTON_LEFT)) {
+        PlaySound(*click_sound);
+        take_break_active = !take_break_active;
+    }
+    char* take_break_text = "Take a break!";
+    int take_break_font_size = 24;
+
+    // None of this is responsive in any way, sorry
+    DrawText(take_break_text,
+            TAKE_BREAK_X_POS + take_break_font_size,
+            TAKE_BREAK_Y_POS + take_break_font_size/2,
+            take_break_font_size, BG_COLOR1); 
+}
+
 /**
  * This function draws the time label in the top bar.
  * It also allows the user to toggle between 24h and 12h formats by clicking on the time label.
@@ -412,6 +446,7 @@ void draw_top_bar(Sound *click_sound) {
     view_button(click_sound);
     arrows_buttons(click_sound);
     settings_button(click_sound);
+    take_break_button(click_sound);
     time_label(click_sound);
     
     if (app.view_type == YEAR_VIEW) {
@@ -640,7 +675,33 @@ void draw_body(DAY today) {
         }
     }
     
-    if (settings_open) {
+    if (take_break_active) {
+        int gif_window_width = 1200;
+        int gif_window_height = 1200;
+        int gif_window_x = (GetScreenWidth() - gif_window_width)/2;
+        int gif_window_y = (GetScreenHeight() - gif_window_height)/2;
+
+        // Draw rectangle
+        DrawRectangle(gif_window_x, gif_window_y, gif_window_width, gif_window_height, BG_COLOR1);
+
+        // Make a close button - same as below
+        int close_button_size = 20;
+        int close_button_x = gif_window_x + gif_window_width - close_button_size - 10;
+        int close_button_y = gif_window_y + 10;
+        DrawRectangle(close_button_x, close_button_y, close_button_size, close_button_size, BG_COLOR1);
+        DrawLine(close_button_x, close_button_y, close_button_x + close_button_size, close_button_y + close_button_size, ACCENT_COLOR2);
+        DrawLine(close_button_x + close_button_size, close_button_y, close_button_x, close_button_y + close_button_size, ACCENT_COLOR2);
+        if (BUTTON_RELEASED == test_button(close_button_x, close_button_y, close_button_size, close_button_size, MOUSE_BUTTON_LEFT)) {
+            take_break_active = 0;
+        }
+
+        // Do not open the task menu if the close button is pressed
+        if (BUTTON_RELEASED == test_button(close_button_x, close_button_y, close_button_size, close_button_size, MOUSE_BUTTON_LEFT)) {
+            is_menu_visible = 0;
+        }
+    }
+
+    else if (settings_open) {
         int width = GetScreenWidth();
         int height = GetScreenHeight();
 
@@ -1013,6 +1074,7 @@ int main(int argc, char **argv) {
 
     SetConfigFlags(FLAG_WINDOW_RESIZABLE);
     InitWindow(WIN_MIN_WIDTH, WIN_MIN_HEIGHT, "Hacktoberfest");
+    MaximizeWindow();   // No time to make it responsive
     SetWindowMinSize(WIN_MIN_WIDTH, WIN_MIN_HEIGHT);
     InitAudioDevice();
     SetTargetFPS(60);
@@ -1028,12 +1090,35 @@ int main(int argc, char **argv) {
     char click_path[strlen(local_path) + 1]; // Always remember to leave a slot for the '\n' character
     strcpy(click_path, local_path);
     click_path[strlen(click_path) - 1] = '\0';
+
+    // GIF path
+    char party_parrot_path[strlen(local_path) + 1]; // Always remember to leave a slot for the '\n' character
+    strcpy(party_parrot_path, local_path);
+    party_parrot_path[strlen(party_parrot_path) - 1] = '\0';
+
+    printf("Click path when created: %s\n", click_path);
+    printf("Parrot path when created: %s\n", party_parrot_path);
+    printf("\n");
+
     truncate_str_after_directory_separator(click_path);
+    truncate_str_after_directory_separator(party_parrot_path);
+
+    printf("Click path after truncating: %s\n", click_path);
+    printf("Parrot path after truncating: %s\n", party_parrot_path);
+    printf("\n");
+
     #if defined(_WIN32)
         strcat(click_path, "assets\\click.wav");
+        strcat(party_parrot_path, "assets\\party_parrot.gif");
     #elif unix
         strcat(click_path, "assets/click.wav");
+        strcat(party_parrot_path, "/assets/party_parrot.gif")
     #endif
+
+    printf("Click path after path added: %\n", click_path);
+    printf("Parrot path after apth added: %s\n", party_parrot_path);
+    printf("\n");
+
     Sound click_sound = LoadSound(click_path);
     
     app.use_24h_format = 1;
@@ -1051,14 +1136,57 @@ int main(int argc, char **argv) {
     validate_day(&app.view_first);
     printf("First Monday: %d/%d/%d\n", app.view_first.date.day, app.view_first.date.month, app.view_first.date.year);
     
+    // Code for GIF
+    // Example followed from: https://www.raylib.com/examples/textures/loader.html?name=textures_gif_player
+    // -------------------------------------------------------------------------------------------------------------
+    
+    int animation_frames = 0;
+    Image img_party_parrot = LoadImageAnim(party_parrot_path, &animation_frames);
+    Texture2D tex_party_parrot = LoadTextureFromImage(img_party_parrot);
+
+    unsigned int nextFrameDataOffset = 0;
+
+    int current_anim_frame = 0;
+    int frameDelay = 3;             // Smaller number, faster switching between frames
+    int frameCounter = 0;
+    
+    // -------------------------------------------------------------------------------------------------------------
+    // End of code for GIF
+
     while (!WindowShouldClose()) {
+        frameCounter++;
+        // Get next frame of gif once delay has finished
+        if (frameCounter >= frameDelay)
+        {
+            current_anim_frame++;
+            // If animation reaches end, reset current frame to beginning
+            if (current_anim_frame >= animation_frames) current_anim_frame = 0;
+
+            nextFrameDataOffset = img_party_parrot.width*img_party_parrot.height*4*current_anim_frame;
+            UpdateTexture(tex_party_parrot, ((unsigned char *)img_party_parrot.data) + nextFrameDataOffset);
+
+            // Reset the delay counter
+            frameCounter = 0;
+        }
+
         BeginDrawing();
             ClearBackground(BG_COLOR1);
             draw_top_bar(&click_sound);
             draw_body(today);
+
+            // Draw animation
+            if(take_break_active) {
+                DrawTexture(tex_party_parrot,
+                            (GetScreenWidth() - tex_party_parrot.width)/2,
+                            (GetScreenHeight() - tex_party_parrot.height)/2,
+                            BG_COLOR1);
+            }
+
         EndDrawing();
     }
 
+    UnloadTexture(tex_party_parrot);
+    UnloadImage(img_party_parrot);
     CloseAudioDevice();
     CloseWindow();
 
