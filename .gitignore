@@ -1,6 +1,9 @@
 # Prerequisites
 *.d
 
+# TODO stuff
+*.mults
+
 # Object files
 *.o
 *.ko
