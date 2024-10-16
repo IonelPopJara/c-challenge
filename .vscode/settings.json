@@ -2,5 +2,8 @@
     "editor.tabSize": 4, // Number of spaces per tab
     "editor.insertSpaces": true, // Convert tabs to spaces
     "editor.detectIndentation": false, // Prevent VSCode from auto-detecting tab/space settings from files
-    "C_Cpp.clang_format_style": "{ BasedOnStyle: Google, DerivePointerAlignment: false, BreakBeforeBraces: Attach }"
+    "C_Cpp.clang_format_style": "{ BasedOnStyle: Google, DerivePointerAlignment: false, BreakBeforeBraces: Attach }",
+    "files.associations": {
+        "raymath.h": "c"
+    }
 }
