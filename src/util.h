@@ -8,5 +8,7 @@
  */
 float lerpf(float a, float b, float scale, float dt);
 
+void printArt(char* file_path);
+
 #endif // UTIL_H
 

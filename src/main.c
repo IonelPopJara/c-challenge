@@ -32,6 +32,15 @@
  * Sometimes the "home" button doesn't work. Example: It is Sunday, 13th Oct and clicking the home button 
  * takes you to the next week.
  * UPDATE: Should be fixed, it doesn't work on Mondays though :)
+ * 
+ * 4. The start time of the tasks is randomly assigned and doesn't check if that number of minutes is possible.
+ * Example: task starting at 11:64
+ * CTRL + F: if (IsKeyPressed(KEY_ENTER) && title_letter_count > 0)
+ * 
+ * 5. I (teo) think I managed to break the click sound when pressing buttons :(
+ *          I'm not sure how to fix it, I'm sorry
+ * Edit: it has something to do with the #ifdef _WIN32 in the main function, adding another path the same way invalidates the gif
+ *          Somewhere they are interfering with each other
 **/
 
 #include "raylib.h"
@@ -1071,6 +1080,20 @@ void truncate_str_after_directory_separator(char *path) {
 #define WIN_MIN_WIDTH (800)
 #define WIN_MIN_HEIGHT (400)
 int main(int argc, char **argv) {
+    // Surprise
+    if(argc == 2 && strcmp(argv[1], "--surprise") == 0) {
+        #ifdef _WIN32
+            char* file_path = "..\\assets\\surprise.txt";
+        #elif unix
+            char* file_path = "../assets/surprise.txt";
+        #endif
+
+        printArt(file_path);
+
+        return 0;
+    }
+
+    // Regularly scheduled programming
     (void)argc;
     (void)argv;
 
@@ -1098,28 +1121,17 @@ int main(int argc, char **argv) {
     strcpy(party_parrot_path, local_path);
     party_parrot_path[strlen(party_parrot_path) - 1] = '\0';
 
-    printf("Click path when created: %s\n", click_path);
-    printf("Parrot path when created: %s\n", party_parrot_path);
-    printf("\n");
-
     truncate_str_after_directory_separator(click_path);
     truncate_str_after_directory_separator(party_parrot_path);
 
-    printf("Click path after truncating: %s\n", click_path);
-    printf("Parrot path after truncating: %s\n", party_parrot_path);
-    printf("\n");
 
     #if defined(_WIN32)
         strcat(click_path, "assets\\click.wav");
         strcat(party_parrot_path, "assets\\party_parrot.gif");
     #elif unix
         strcat(click_path, "assets/click.wav");
-        strcat(party_parrot_path, "/assets/party_parrot.gif")
+        strcat(party_parrot_path, "/assets/party_parrot.gif");
     #endif
-
-    printf("Click path after path added: %\n", click_path);
-    printf("Parrot path after apth added: %s\n", party_parrot_path);
-    printf("\n");
 
     Sound click_sound = LoadSound(click_path);
     
