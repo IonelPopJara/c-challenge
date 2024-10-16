@@ -50,5 +50,12 @@ add_executable(${EXECUTABLE_NAME}
     src/day.c
 )
 
+# Copy the assets directory to the build directory
+add_custom_command(
+    TARGET ${EXECUTABLE_NAME} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    ${PROJECT_SOURCE_DIR}/assets $<TARGET_FILE_DIR:${EXECUTABLE_NAME}>/assets
+)
+
 # Link libraries
 target_link_libraries(${EXECUTABLE_NAME} ${RAYLIB_LIB} ${SYSTEM_LIBS})
