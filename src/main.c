@@ -51,7 +51,7 @@
 #include "day.h"
 #include "dyn_array.h"
 // this is the old color scheme if ppl want to use it. it's spooky season so i changed the color scheme
-// #include "classic_style.h"
+/*#include "classic_style.h"*/
 #include "spooky_style.h"
 #include "ui.h"
 #include "util.h"
@@ -1068,15 +1068,6 @@ void draw_body(DAY today) {
     }
 }   
 
-void truncate_str_after_directory_separator(char *path) {
-    for (int i = strlen(path); i >= 0; --i) {
-        if (path[i] == '\\' || path[i] == '/') {
-            path[i+1] = '\0';
-            return;
-        }
-    }
-}
-
 #define WIN_MIN_WIDTH (800)
 #define WIN_MIN_HEIGHT (400)
 int main(int argc, char **argv) {
@@ -1107,30 +1098,25 @@ int main(int argc, char **argv) {
     /**
      * I'm sure there is a better way to optimize the memory usage for this, but currently, I am not aware of such way
      * I'm sorry for wasting your memory for such a simple task - M37
+     *
+     * -----------
+     *
+     * Memory is there to be wasted - Mults
+     *
+     * Update: The I made some helper functions to make the parsing easier.
+     * I didn't feel like doing dynamic allocation for now.
      */
-    char local_path[strlen(argv[0]) + 1]; // Always remember to leave a slot for the '\n' character
+    char local_path[strlen(argv[0]) + 1]; // Always remember to leave a slot for the '\0' character
     strcpy(local_path, argv[0]);
     truncate_str_after_directory_separator(local_path);
 
-    char click_path[strlen(local_path) + 1]; // Always remember to leave a slot for the '\n' character
-    strcpy(click_path, local_path);
-    click_path[strlen(click_path) - 1] = '\0';
+    // Click path
+    char click_path[512]; // Large enough buffer
+    parse_asset_path(click_path, local_path, "click.wav");
 
     // GIF path
-    char party_parrot_path[strlen(local_path) + 1]; // Always remember to leave a slot for the '\n' character
-    strcpy(party_parrot_path, local_path);
-    party_parrot_path[strlen(party_parrot_path) - 1] = '\0';
-
-    truncate_str_after_directory_separator(click_path);
-    truncate_str_after_directory_separator(party_parrot_path);
-
-#ifdef _WIN32
-    strcat(click_path, "assets\\click.wav");
-    strcat(party_parrot_path, "assets\\party_parrot.gif");
-#else
-    strcat(click_path, "assets/click.wav");
-    strcat(party_parrot_path, "/assets/party_parrot.gif");
-#endif
+    char party_parrot_path[512];
+    parse_asset_path(party_parrot_path, local_path, "party_parrot.gif");
 
     Sound click_sound = LoadSound(click_path);
 
