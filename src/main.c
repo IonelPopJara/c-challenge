@@ -23,6 +23,22 @@
  * There were 1208 lines in main when I started my turn. My turn is
  * almost over, I've been only refactoring code, and somehow main
  * gained 63 lines. I blame the comments...
+ *
+ * I checked with cloc and this is what I got.
+ *
+ * Before:
+ * -------------------------------------------------------------------------------
+ * Language                     files          blank        comment           code
+ * -------------------------------------------------------------------------------
+ * C                                1            161            185            862
+ * -------------------------------------------------------------------------------
+ *
+ * After:
+ * -------------------------------------------------------------------------------
+ * Language                     files          blank        comment           code
+ * -------------------------------------------------------------------------------
+ * C                                1            165            257            849
+ * -------------------------------------------------------------------------------
  */
 
 /** KNOWN BUGS:
@@ -54,6 +70,10 @@
  *
  * 6. When the time format is not set to 24 hours, 12 p.m. and 12 p.m. are reversed. If it's 00:00 it will display 12:00 p.m.
  *      I might've fixed it but I'm not sure. You can check this function if you want `void time_label`.
+ * 
+ * 7. For some reason whenever a task with no data other than the name is added, no other task is displayed afterwards.
+ *      For example, instead of adding "do something;04:20pm;01:00" you add "do something", no other task is rendered :/
+ *      I'm too tired to figure it out, i've been refactoring all day long.
 **/
 
 #include "raylib.h"
@@ -69,6 +89,7 @@
 #include "ui.h"
 #include "util.h"
 #include "math.h"
+#include <time.h> // For time?? idk I'm not a clock maker
 
 // THIS IS PUBLICLY ACCESSED. DO NOT ACCESS FROM THREADS IF YOU DON't KNOW WHAT YOU'RE DOING
 APP_STATE app = {0};
@@ -741,8 +762,7 @@ void draw_settings(BUTTON* close_button) {
         .x = GetScreenWidth() / 2 - 300 / 2,
         .y = GetScreenHeight() / 2 - 200 / 2,
     };
-
-    // Draw the main window
+    // Draw the window
     DrawRectangle(settings_window.x, settings_window.y, settings_window.width, settings_window.height, ACCENT_COLOR1);
 
     // Draw the close button
@@ -778,12 +798,324 @@ void draw_settings(BUTTON* close_button) {
     }
 }
 
+/**
+ * Who would use AI, am I right?
+ *
+ * Not me, I totally didn't ask Fred (ChatGPT) to make this function...
+ *
+ * - Mults
+ *
+ * NVM ChatGPT is dogshit, I did it myself...
+ */
+#define TIME_STRING_LENGTH 6 // HH:MM + '/0'
+int parse_time(char *time_str, CLOCK_TIME *output_time) {
+    int hour;
+    int minutes;
+    int is_pm;
+
+    // Check for letters, if 'p' or 'A' are present, I'm gonna assume it's military time
+    // This is not correct all the time but it will have to do for now
+    if (strstr(time_str, "p") || strstr(time_str, "P")) {
+        is_pm = 1;
+    }
+    if (strstr(time_str, "a") || strstr(time_str, "A")) {
+        is_pm = 0;
+    }
+
+    // Iterate through all the characters,
+    // if there are any other characters besides numbers, colons, space, p, or m, return invalid
+    for (int i = 0; i < strlen(time_str); i++) {
+        if (time_str[i] != ' '
+            && time_str[i] != ':'
+            && time_str[i] != 'p'
+            && time_str[i] != 'm'
+            && time_str[i] != '.'
+            && !(time_str[i] >= '0' && time_str[i] <= '9')) {
+
+            return -1; // Invalid time format
+        }
+    }
+
+    char* tok = strtok(strdup(time_str), ":");
+    int token_counter = 1;
+
+    while (tok) {
+        if (token_counter > 2) {
+            // For example if we have 23:32:65 -> invalid, we don't care about seconds and stuff
+            return -1;
+        }
+
+        // Check for hours
+        if (token_counter == 1) {
+            // Conver the token to a number, if it's not a valid hour, return -1
+            hour = atoi(tok);
+
+            if (is_pm && (hour < 0 || hour > 12)) {
+                return -1;
+            }
+            else if (!is_pm && (hour < 0 || hour > 24)) {
+                return -1;
+            }
+        }
+        // Check for minutes
+        else if (token_counter == 2) {
+            // Conver the token to a number, if it's not a valid hour, return -1
+            minutes = atoi(tok);
+
+            if (minutes < 0 || minutes >= 60) {
+                return -1;
+            }
+        }
+
+        // Check for minutes
+        tok = strtok(NULL, ":");
+        token_counter++;
+    }
+
+    free(tok);
+
+    if (is_pm && hour != 12) {
+        hour += 12; // Convert P.M. to 24-hour format
+    } else if (!is_pm && hour == 12) {
+        hour = 0; // Midnight
+    }
+
+    output_time->hour = hour;
+    if (token_counter <= 2) {
+        output_time->minute = 0;
+    } else {
+        output_time->minute = minutes;
+    }
+    output_time->second = 0;
+
+    return 1;  // Return success if time is valid
+}
+
+int parse_duration(char *time_str, CLOCK_TIME *output_duration) {
+    int hour;
+    int minutes;
+
+    // Iterate through all the characters,
+    // if there are any other characters besides numbers, colons, or spaces, return invalid
+    for (int i = 0; i < strlen(time_str); i++) {
+        if (time_str[i] != ' '
+            && time_str[i] != ':'
+            && !(time_str[i] >= '0' && time_str[i] <= '9')) {
+
+            return -1; // Invalid time format
+        }
+    }
+
+    char* tok = strtok(strdup(time_str), ":");
+    int token_counter = 1;
+
+    while (tok) {
+        if (token_counter > 2) {
+            // For example if we have 23:32:65 -> invalid, we don't care about seconds and stuff
+            return -1;
+        }
+
+        // Check for hours
+        if (token_counter == 1) {
+            // Conver the token to a number, if it's not a valid hour, return -1
+            hour = atoi(tok);
+
+            if (hour < 0 || hour > 24) {
+                return -1;
+            }
+        }
+        // Check for minutes
+        else if (token_counter == 2) {
+            // Conver the token to a number, if it's not a valid hour, return -1
+            minutes = atoi(tok);
+
+            if (minutes < 0 || minutes >= 60) {
+                return -1;
+            }
+        }
+
+        // Check for minutes
+        tok = strtok(NULL, ":");
+        token_counter++;
+    }
+
+    free(tok);
+
+    output_duration->hour = hour;
+    if (token_counter <= 2) {
+        output_duration->minute = 0;
+    } else {
+        output_duration->minute = minutes;
+    }
+    output_duration->second = 0;
+
+    return 1;  // Return success if time is valid
+}
+
+void monitor_user_input(int text_size, int title_box_width) {
+    // TODO: Turn this into a function that monitors user input
+    // Also, add a possibility to change the minutes here
+    // Either that, or remove the time completely
+    // Maybe I can either add a manual time, or no time at all so
+    // it counts as a general task
+    int key = GetCharPressed();
+    while (key > 0) {
+        // NOTE: Only allow keys in range [32..125]
+        if ((key >= 32) && (key <= 125) && (title_letter_count < SCHEDULE_TITLE_MAX_LEN)) {
+            title[title_letter_count] = (char)key;
+            title[title_letter_count + 1] = '\0';
+            title_letter_count++;
+            if (MeasureText(title, text_size) + text_size + 5 > ((int)title_box_width)) {
+                wrap_title_index++;
+            } else {
+                wrap_title_index = 0;
+            }
+        }
+        key = GetCharPressed();
+    }
+
+    // If backspace is pressed, delete the last character
+    if (IsKeyPressed(KEY_BACKSPACE)) {
+        wrap_title_index--;
+        if (wrap_title_index < 0 ) {
+            wrap_title_index = 0;
+        }
+        title_letter_count--;
+        if (title_letter_count < 0) {
+            title_letter_count = 0;
+        }
+        title[title_letter_count] = '\0';
+
+        key_hold_time = 0.0f; 
+    }
+
+    // If backspace is held, delete the last character continuously
+    if (IsKeyDown(KEY_BACKSPACE)) {
+        key_hold_time += GetFrameTime();
+        if (key_hold_time >= hold_threshold) {
+
+            key_hold_time = key_hold_time - delete_interval;
+
+            wrap_title_index--;
+            if (wrap_title_index < 0 ) {
+                wrap_title_index = 0;
+            }
+            title_letter_count--;
+            if (title_letter_count < 0) {
+                title_letter_count = 0;
+            }
+            title[title_letter_count] = '\0';
+
+        }
+    } else {
+        key_hold_time = 0.0f;
+    }
+
+    if (IsKeyPressed(KEY_ENTER) && title_letter_count > 0) {
+        /**
+         * NOTE: The only idea I could think of was to make the user input the date manually using ';' (semicolons)
+         * as separators. I'm not a UX developer.
+         *
+         * - Mults
+         */
+
+        SCHEDULE_ITEM item = {0};
+        // Process title to get start time and duration
+        char* data[3];
+        data[0] = "\0";
+        data[1] = "\0";
+        data[2] = "\0";
+
+        char* buff = title;
+        buff = strtok(buff, ";");
+        int i = 0;
+        while (buff) {
+            printf("Buff: %s\n", buff);
+            data[i++] = buff;
+            buff = strtok(NULL, ";");
+        }
+
+        if (data[0]) {
+            printf("Task: %s\n", data[0]);
+            strcpy(item._title, data[0]);
+        }
+
+        CLOCK_TIME output_time;
+        CLOCK_TIME output_duration;
+
+        if (data[1]) {
+            printf("Start: %s\n", data[1]);
+            if (parse_time(data[1], &output_time) == -1) {
+                // Invalid time, start time is 'now'
+                item.begin_time = get_current_clock_local(); // temporary
+                printf("Invalid time\n");
+            } else {
+                // Valid time
+                item.begin_time = output_time;
+                printf("Valid time\n");
+            }
+        } else {
+            // Start time is 'now'
+            item.begin_time = get_current_clock_local(); // temporary
+            printf("Invalid time\n");
+        }
+
+        if (data[2]) {
+            printf("Duration: %s\n", data[2]);
+            if (parse_duration(data[2], &output_duration) == -1) {
+                printf("Default duration\n");
+                // Default duration of 1 hour
+                item.duration.hours = 1;
+                item.duration.minutes = 0;
+            } else {
+                printf("Valid duration\n");
+                item.duration.hours = output_duration.hour;
+                item.duration.minutes = output_duration.minute;
+            }
+        } else {
+            printf("Default duration\n");
+            // Default duration of 1 hour
+            item.duration.hours = 1;
+            item.duration.minutes = 0;
+        }
+
+        strcpy(item._description, description);
+
+        // + randomize a few minutes. otherwise, all items will be on the same time, and that doesn't work
+        /**
+         * item.begin_time.minute += GetRandomValue(0, 59); // also, temporary :D
+         * item.duration.hours = 1; // temporary
+         * item.duration.minutes = 0; // temporary
+         *
+         * The temporary things were removed - Mults :)
+         */
+
+        add_schedule_item(&last_pressed_day, item);
+
+        title[0] = '\0';
+        description[0] = '\0';
+        title_letter_count = 0;
+        schedule_letter_count = 0;
+        wrap_title_index = 0;
+    }
+}
+
 void draw_menu(int text_size, BUTTON* close_button) {
-    // TODO: Get rid of the magic numbers
-    // Day Schedule Box
-    DrawRectangle(GetScreenWidth() / 4,
-                  (GetScreenHeight() + 2 * TOP_BAR_HEIGHT) / 4,
-                  GetScreenWidth() / 2, GetScreenHeight() / 2, ACCENT_COLOR1);
+    //-------------------------------------DRAW MENU WINDOW-------------------------------------//
+    WINDOW menu_window = {
+        .x = GetScreenWidth() / 4,
+        .y = (GetScreenHeight() + 2 * TOP_BAR_HEIGHT) / 4,
+        .width = GetScreenWidth() / 2,
+        .height = GetScreenHeight() / 2
+    };
+    // Draw Schedule Box
+    DrawRectangle(menu_window.x,
+                  menu_window.y,
+                  menu_window.width,
+                  menu_window.height,
+                  ACCENT_COLOR1
+                  );
+
     char str[40];
     snprintf(str, 40, "Task for %s",
              is_today ? "Today"
@@ -791,26 +1123,22 @@ void draw_menu(int text_size, BUTTON* close_button) {
                           last_pressed_day.date.month,
                           last_pressed_day.date.year));
 
-    // TODO: Add a function to add a close button
     // Draw a close button
-    close_button->size = 15;
-    close_button->x = GetScreenWidth() / 4 + GetScreenWidth() / 2 - close_button->size - 10;
-    close_button->y = (GetScreenHeight() + 2 * TOP_BAR_HEIGHT) / 4 + 10;
-    DrawRectangle(close_button->x, close_button->y, close_button->size, close_button->size, BG_COLOR1);
-    DrawLine(close_button->x, close_button->y, close_button->x + close_button->size, close_button->y + close_button->size, ACCENT_COLOR2);
-    DrawLine(close_button->x + close_button->size, close_button->y, close_button->x, close_button->y + close_button->size, ACCENT_COLOR2);
-    // END TODO
+    draw_close_button(close_button, 15, menu_window);
 
-    /*
-            Center a object(horizontal or vertical) in a given rectangle box
-            x = X + (W-w)/2
-            x -> centre position , X-> position of rectangle , W = width of rectangle , w = width of object
-        */
-    int text_pos = (GetScreenWidth() / 4) +
-        (GetScreenWidth() / 2 - MeasureText(str, text_size)) / 2;
+    /**
+     * Center a object(horizontal or vertical) in a given rectangle box
+     *  x = X + (W-w)/2
+     *  x -> centre position , X-> position of rectangle , W = width of rectangle , w = width of object
+     */
+    /*int text_pos = (GetScreenWidth() / 4) +*/
+    /*    (GetScreenWidth() / 2 - MeasureText(str, text_size)) / 2;*/
+    /**/
+    /*DrawText(str, text_pos, (GetScreenHeight() + 2 * TOP_BAR_HEIGHT) / 4 + 10,*/
+    /*         text_size, BG_COLOR2);*/
 
-    DrawText(str, text_pos, (GetScreenHeight() + 2 * TOP_BAR_HEIGHT) / 4 + 10,
-             text_size, BG_COLOR2);
+    // I'm using wolle's function instead, even though it wasn't meant for this purpose
+    draw_centered_text(str, menu_window.x, menu_window.y - 180, menu_window.width, menu_window.height, text_size, BG_COLOR1);
 
     // Day Schedule Title Box
     Rectangle title_box = {(float)GetScreenWidth() / 4 + 20,
@@ -827,16 +1155,19 @@ void draw_menu(int text_size, BUTTON* close_button) {
 
     Vector2 title_pos = {
         .x = (float)(GetScreenWidth()) / 4 + 20 +
-        (float)((GetScreenWidth() / 2) - 40 -
-        (MeasureText("Enter Title", text_size))) /
+        (((float)GetScreenWidth() / 2) - 40 -
+        (MeasureText("Task;HH:MM;Duration", text_size))) /
         2,
         .y = (float)(GetScreenHeight() + 2 * TOP_BAR_HEIGHT) / 4 +
         (float)GetScreenHeight() / 12 +
         ((float)GetScreenHeight() / 12 - text_size) / 2};
+    //-------------------------------------DRAW MENU WINDOW-------------------------------------//
 
+
+    //-------------------------------------CHECK USER INPUT-------------------------------------//
     // Only draw text if there is not any input from the user yet.
     if (title_letter_count == 0) {
-        DrawText("Enter Title", title_pos.x, title_pos.y, text_size,
+        DrawText("Task;HH:MM;Duration", title_pos.x, title_pos.y, text_size,
                  ColorAlpha(BG_COLOR2, 0.6));
     }
 
@@ -845,93 +1176,13 @@ void draw_menu(int text_size, BUTTON* close_button) {
     else
         mouse_on_title = 0;
 
-    // TODO: Turn this into a function that monitors user input
-    // Also, add a possibility to change the minutes here
-    // Either that, or remove the time completely
-    // Maybe I can either add a manual time, or no time at all so
-    // it counts as a general task
     if (mouse_on_title) {
         SetMouseCursor(MOUSE_CURSOR_IBEAM);
-
-        int key = GetCharPressed();
-        while (key > 0) {
-            // NOTE: Only allow keys in range [32..125]
-            if ((key >= 32) && (key <= 125) && (title_letter_count < SCHEDULE_TITLE_MAX_LEN)) {
-                title[title_letter_count] = (char)key;
-                title[title_letter_count + 1] = '\0';
-                title_letter_count++;
-                if (MeasureText(title, text_size) + text_size + 5 > ((int)title_box.width)) {
-                    wrap_title_index++;
-                } else {
-                    wrap_title_index = 0;
-                }
-            }
-            key = GetCharPressed();
-        }
-
-        // If backspace is pressed, delete the last character
-        if (IsKeyPressed(KEY_BACKSPACE)) {
-            wrap_title_index--;
-            if (wrap_title_index < 0 ) {
-                wrap_title_index = 0;
-            }
-            title_letter_count--;
-            if (title_letter_count < 0) {
-                title_letter_count = 0;
-            }
-            title[title_letter_count] = '\0';
-
-            key_hold_time = 0.0f; 
-        }
-
-        // If backspace is held, delete the last character continuously
-        if (IsKeyDown(KEY_BACKSPACE)) {
-            key_hold_time += GetFrameTime();
-            if (key_hold_time >= hold_threshold) {
-
-                key_hold_time = key_hold_time - delete_interval;
-
-                wrap_title_index--;
-                if (wrap_title_index < 0 ) {
-                    wrap_title_index = 0;
-                }
-                title_letter_count--;
-                if (title_letter_count < 0) {
-                    title_letter_count = 0;
-                }
-                title[title_letter_count] = '\0';
-
-            }
-        } 
-
-        else {
-            key_hold_time = 0.0f;
-        }
-
-        if (IsKeyPressed(KEY_ENTER) && title_letter_count > 0) {
-            SCHEDULE_ITEM item = {0};
-            strcpy(item._title, title);
-            strcpy(item._description, description);
-
-            item.begin_time = get_current_clock_local(); // temporary
-            // + randomize a few minutes. otherwise, all items will be on the same time, and that doesn't work
-            item.begin_time.minute += GetRandomValue(0, 59); // also, temporary :D
-            item.duration.hours = 1; // temporary
-            item.duration.minutes = 0; // temporary
-
-            add_schedule_item(&last_pressed_day, item);
-
-            title[0] = '\0';
-            description[0] = '\0';
-            title_letter_count = 0;
-            schedule_letter_count = 0;
-            wrap_title_index = 0;
-        }
-
+        monitor_user_input(text_size, title_box.width);
     } else {
         SetMouseCursor(MOUSE_CURSOR_DEFAULT);
     }
-    // END TODO
+    //-------------------------------------CHECK USER INPUT-------------------------------------//
 
     /**
          * Basically, all in this 'if-statement' checks if there are any items in the schedule, and draws them, if you have the menu open.
@@ -1092,8 +1343,7 @@ void draw_parrot(Texture2D tex_parrot, BUTTON* close_button) {
         .x = (GetScreenWidth() - 600)/2,
         .y = (GetScreenHeight() - 600)/2,
     };
-
-    // Draw rectangle
+    // Draw the window
     DrawRectangle(gif_window.x, gif_window.y, gif_window.width, gif_window.height, BLUE);
 
     // Make a close button - same as below just bigger
