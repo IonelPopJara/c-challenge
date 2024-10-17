@@ -1131,14 +1131,14 @@ void draw_menu(int text_size, BUTTON* close_button) {
      *  x = X + (W-w)/2
      *  x -> centre position , X-> position of rectangle , W = width of rectangle , w = width of object
      */
-    /*int text_pos = (GetScreenWidth() / 4) +*/
-    /*    (GetScreenWidth() / 2 - MeasureText(str, text_size)) / 2;*/
-    /**/
-    /*DrawText(str, text_pos, (GetScreenHeight() + 2 * TOP_BAR_HEIGHT) / 4 + 10,*/
-    /*         text_size, BG_COLOR2);*/
+    int text_pos = (GetScreenWidth() / 4) +
+        (GetScreenWidth() / 2 - MeasureText(str, text_size)) / 2;
+    
+    DrawText(str, text_pos, (GetScreenHeight() + 2 * TOP_BAR_HEIGHT) / 4 + 10, text_size, BG_COLOR2);
 
     // I'm using wolle's function instead, even though it wasn't meant for this purpose
-    draw_centered_text(str, menu_window.x, menu_window.y - 180, menu_window.width, menu_window.height, text_size, BG_COLOR1);
+    // draw_centered_text(str, menu_window.x, menu_window.y - 180, menu_window.width, menu_window.height, text_size, BG_COLOR1);
+    // nvm, it didn't work on windows lol - Mults
 
     // Day Schedule Title Box
     Rectangle title_box = {(float)GetScreenWidth() / 4 + 20,
