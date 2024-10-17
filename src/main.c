@@ -16,6 +16,11 @@
  * - teo
  */
 
+/**
+ * And now I realize that this was the biggest mistake of my life
+ * - Mults
+ */
+
 /** KNOWN BUGS:
  * 1.
  * When cycling through the months, there is always a wrong pair. Meaning it will say May twice in a row
@@ -41,6 +46,10 @@
  *          I'm not sure how to fix it, I'm sorry
  * Edit: it has something to do with the #ifdef _WIN32 in the main function, adding another path the same way invalidates the gif
  *          Somewhere they are interfering with each other
+ * Edit: (I think) I fixed this bug, the paths were being assigned wrong sizes so the memory wasn't being allocated properly. - Ionel
+ *
+ * 6. When the time format is not set to 24 hours, 12 p.m. and 12 p.m. are reversed. If it's 00:00 it will display 12:00 p.m.
+ *      I might've fixed it but I'm not sure. You can check this function if you want `void time_label`.
 **/
 
 #include "raylib.h"
@@ -276,7 +285,7 @@ void arrows_buttons(Sound *click_sound) {
             app.view_first.date.year += 1;
             // snap to the first month of the year
             app.view_first.date.month = 1;
-        }        
+        }
 
         validate_day(&app.view_first);
         if (app.view_type == MONTH_VIEW) {
@@ -383,7 +392,25 @@ void take_break_button(Sound *click_sound) {
 #define COLUMN_CHAR_PADDING (3)
 void time_label(Sound *click_sound) {
     CLOCK_TIME now = get_current_clock_local();
-    char *time_period_str = app.use_24h_format == 1 ? "" : now.hour > 12 ? " PM" : " AM";
+    /**
+     * as much as I love ternary one-liners, I had to change this line beause it wasn't
+     * working for 12:00pm and 12:00 am as they were reversed
+     *
+     * char *time_period_str = app.use_24h_format == 1 ? "" : now.hour > 12 ? " PM" : " AM";
+     *
+     */
+    char *time_period_str;
+    if (app.use_24h_format == 1) {
+        time_period_str = ""; // No suffix in 24-hour format
+    } else if (now.hour == 0) {
+        time_period_str = " AM";
+    } else if (now.hour == 12) {
+        time_period_str = " PM";
+    } else {
+        time_period_str = now.hour > 12 ? " PM" : " AM";
+    }
+
+
     char hour_str[3]; // Always remember to leave a slot for the '\n' character
     char minute_str[3]; // Always remember to leave a slot for the '\n' character
     snprintf(hour_str, 3, "%02d", app.use_24h_format == 0 && now.hour > 12 ? now.hour - 12 :  now.hour);
@@ -522,6 +549,23 @@ int find_ideal_text_size(char *text, int max_width) {
 #define MIN_DAY_MENU_HEIGHT (40)
 #define BUTTON_SIZE 20 // Small square button size
 
+
+static int is_menu_visible = 0;
+static Vector2 last_mouse_pos = {0};
+static DAY last_pressed_day = {0};
+static int mouse_on_title=0;
+static int is_today = 0;
+static char title[SCHEDULE_TITLE_MAX_LEN + 1] = "\0";
+static int title_letter_count = 0;
+static char description[SCHEDULE_TEXT_MAX_LEN + 1] = "\0";
+static int schedule_letter_count = 0;
+static int wrap_title_index = 0;
+static float key_hold_time = 0.0f;
+const float hold_threshold = 0.5f;
+const float delete_interval = 0.05f;
+
+int text_shit_size;
+
 void draw_body(DAY today) {
     int rows;
     if (app.view_type == WEEK_VIEW) {
@@ -533,7 +577,11 @@ void draw_body(DAY today) {
     }
 
     int date_width = (GetScreenWidth() - 2 * BODY_PADDING_OUT - (DAYS_IN_WEEK - 1) * BODY_PADDING_IN) / DAYS_IN_WEEK;
+
+    // TODO: Fix this idk
     int text_size = find_ideal_text_size(TEST_DATE_STR, date_width - 2 * DATE_OUTLINE - 2 * DATE_PADDING);
+    text_shit_size = text_size;
+
     int week_bar_height = text_size + BODY_PADDING_IN;
     int date_height = (GetScreenHeight() - TOP_BAR_HEIGHT - week_bar_height - 2 * BODY_PADDING_OUT - (rows - 1) * BODY_PADDING_IN) / rows;
 
@@ -549,20 +597,6 @@ void draw_body(DAY today) {
 
     int is_day_of_current_month = (int)(app.view_type == WEEK_VIEW);
     DAY current = app.view_first;
-
-    static int is_menu_visible = 0;
-    static Vector2 last_mouse_pos = {0};
-    static DAY last_pressed_day = {0};
-    static int mouse_on_title=0;
-    static int is_today = 0;
-    static char title[SCHEDULE_TITLE_MAX_LEN + 1] = "\0";
-    static int title_letter_count = 0;
-    static char description[SCHEDULE_TEXT_MAX_LEN + 1] = "\0";
-    static int schedule_letter_count = 0;
-    static int wrap_title_index = 0;
-    static float key_hold_time = 0.0f;
-    const float hold_threshold = 0.5f;
-    const float delete_interval = 0.05f; 
 
     if (app.view_type != YEAR_VIEW) {
         for (int y = 0; y < rows; ++y) {
@@ -685,179 +719,173 @@ void draw_body(DAY today) {
             }
         }
     }
+}
 
-    if (take_break_active) {
-        int gif_window_width = 1200;
-        int gif_window_height = 1200;
-        int gif_window_x = (GetScreenWidth() - gif_window_width)/2;
-        int gif_window_y = (GetScreenHeight() - gif_window_height)/2;
+/**
+ * The code was making me go insane so I did some refactoring. You can think of views like
+ * pages in a web app. Then thanks to some wacky shenanigans happening in main, we can render
+ * them when we need them.
+ *
+ * - Mults
+ */
+//-------------------------------------VIEWS-------------------------------------//
+void draw_settings(BUTTON* close_button) {
+    int width = GetScreenWidth();
+    int height = GetScreenHeight();
 
-        // Draw rectangle
-        DrawRectangle(gif_window_x, gif_window_y, gif_window_width, gif_window_height, BLACK);
+    // Draw the settings window
+    int settings_window_width = 300;
+    int settings_window_height = 200;
+    int settings_window_x = width / 2 - settings_window_width / 2;
+    int settings_window_y = height / 2 - settings_window_height / 2;
+    DrawRectangle(settings_window_x, settings_window_y, settings_window_width, settings_window_height, ACCENT_COLOR1);
 
-        // Make a close button - same as below just bigger
-        int close_button_size = 40;
-        int close_button_x = gif_window_x + gif_window_width - close_button_size - 10;
-        int close_button_y = gif_window_y + 10;
-        DrawRectangle(close_button_x, close_button_y, close_button_size, close_button_size, BG_COLOR1);
-        DrawLine(close_button_x, close_button_y, close_button_x + close_button_size, close_button_y + close_button_size, ACCENT_COLOR2);
-        DrawLine(close_button_x + close_button_size, close_button_y, close_button_x, close_button_y + close_button_size, ACCENT_COLOR2);
-        if (BUTTON_RELEASED == test_button(close_button_x, close_button_y, close_button_size, close_button_size, MOUSE_BUTTON_LEFT)) {
-            take_break_active = 0;
-        }
+    // Draw caption
+    int caption_height = 30;
+    int caption_x = settings_window_x + settings_window_width / 2;
+    int caption_y = settings_window_y + 10;
+    DrawText("Settings", caption_x - MeasureText("Settings", 20) / 2, caption_y, 20, BG_COLOR1);
 
-        // Do not open the task menu if the close button is pressed
-        if (BUTTON_RELEASED == test_button(close_button_x, close_button_y, close_button_size, close_button_size, MOUSE_BUTTON_LEFT)) {
-            is_menu_visible = 0;
-        }
+    // Update the close button
+    close_button->size = 20;
+    close_button->x = settings_window_x + settings_window_width - close_button->size - 10;
+    close_button->y = settings_window_y + 10;
+    DrawRectangle(close_button->x, close_button->y, close_button->size, close_button->size, BG_COLOR1);
+    DrawLine(close_button->x, close_button->y, close_button->x + close_button->size, close_button->y + close_button->size, ACCENT_COLOR2);
+    DrawLine(close_button->x + close_button->size, close_button->y, close_button->x, close_button->y + close_button->size, ACCENT_COLOR2);
+
+    // Customizable distance between text and checkbox
+    int distance_between_text_and_checkbox = 10;
+
+    // Draw text and checkbox on the same horizontal plane
+    int checkbox_size = 20;
+    int text_width = MeasureText("Clock format", 20);
+    int total_width = text_width + distance_between_text_and_checkbox + checkbox_size;
+
+    int text_x = settings_window_x + (settings_window_width - total_width) / 2;
+    int text_y = caption_y + caption_height + 30; // Adjust vertical position as needed
+    DrawText("Clock format", text_x, text_y, 20, BG_COLOR1);
+
+    int checkbox_x = text_x + text_width + distance_between_text_and_checkbox;
+    int checkbox_y = text_y + (20 - checkbox_size) / 2; // Center checkbox vertically with text
+    DrawRectangle(checkbox_x, checkbox_y, checkbox_size, checkbox_size, BG_COLOR1);
+
+    if (app.use_24h_format) {
+        DrawLine(checkbox_x, checkbox_y, checkbox_x + checkbox_size, checkbox_y + checkbox_size, ACCENT_COLOR2);
+        DrawLine(checkbox_x + checkbox_size, checkbox_y, checkbox_x, checkbox_y + checkbox_size, ACCENT_COLOR2);
     }
 
-    else if (settings_open) {
-        int width = GetScreenWidth();
-        int height = GetScreenHeight();
-
-        // Draw the settings window
-        int settings_window_width = 300;
-        int settings_window_height = 200;
-        int settings_window_x = width / 2 - settings_window_width / 2;
-        int settings_window_y = height / 2 - settings_window_height / 2;
-        DrawRectangle(settings_window_x, settings_window_y, settings_window_width, settings_window_height, ACCENT_COLOR1);
-
-        // Draw caption
-        int caption_height = 30;
-        int caption_x = settings_window_x + settings_window_width / 2;
-        int caption_y = settings_window_y + 10;
-        DrawText("Settings", caption_x - MeasureText("Settings", 20) / 2, caption_y, 20, BG_COLOR1);
-        // Make a close button
-        int close_button_size = 20;
-        int close_button_x = settings_window_x + settings_window_width - close_button_size - 10;
-        int close_button_y = settings_window_y + 10;
-        DrawRectangle(close_button_x, close_button_y, close_button_size, close_button_size, BG_COLOR1);
-        DrawLine(close_button_x, close_button_y, close_button_x + close_button_size, close_button_y + close_button_size, ACCENT_COLOR2);
-        DrawLine(close_button_x + close_button_size, close_button_y, close_button_x, close_button_y + close_button_size, ACCENT_COLOR2);
-        if (BUTTON_RELEASED == test_button(close_button_x, close_button_y, close_button_size, close_button_size, MOUSE_BUTTON_LEFT)) {
-            settings_open = 0;
-        }
-        // Do not open the task menu if the close button is pressed
-        if (BUTTON_RELEASED == test_button(close_button_x, close_button_y, close_button_size, close_button_size, MOUSE_BUTTON_LEFT)) {
-            is_menu_visible = 0;
-        }
-
-        // Customizable distance between text and checkbox
-        int distance_between_text_and_checkbox = 10;
-
-        // Draw text and checkbox on the same horizontal plane
-        int checkbox_size = 20;
-        int text_width = MeasureText("Clock format", 20);
-        int total_width = text_width + distance_between_text_and_checkbox + checkbox_size;
-
-        int text_x = settings_window_x + (settings_window_width - total_width) / 2;
-        int text_y = caption_y + caption_height + 30; // Adjust vertical position as needed
-        DrawText("Clock format", text_x, text_y, 20, BG_COLOR1);
-
-        int checkbox_x = text_x + text_width + distance_between_text_and_checkbox;
-        int checkbox_y = text_y + (20 - checkbox_size) / 2; // Center checkbox vertically with text
-        DrawRectangle(checkbox_x, checkbox_y, checkbox_size, checkbox_size, BG_COLOR1);
-
-        if (app.use_24h_format) {
-            DrawLine(checkbox_x, checkbox_y, checkbox_x + checkbox_size, checkbox_y + checkbox_size, ACCENT_COLOR2);
-            DrawLine(checkbox_x + checkbox_size, checkbox_y, checkbox_x, checkbox_y + checkbox_size, ACCENT_COLOR2);
-        }
-
-        if (BUTTON_RELEASED == test_button(checkbox_x, checkbox_y, checkbox_size, checkbox_size, MOUSE_BUTTON_LEFT)) {
-            app.use_24h_format = !app.use_24h_format;
-        }
+    if (BUTTON_RELEASED == test_button(checkbox_x, checkbox_y, checkbox_size, checkbox_size, MOUSE_BUTTON_LEFT)) {
+        app.use_24h_format = !app.use_24h_format;
     }
+}
 
-    else if (is_menu_visible) {
-        // Day Schedule Box
-        DrawRectangle(GetScreenWidth() / 4,
-                      (GetScreenHeight() + 2 * TOP_BAR_HEIGHT) / 4,
-                      GetScreenWidth() / 2, GetScreenHeight() / 2, ACCENT_COLOR1);
-        char str[40];
-        snprintf(str, 40, "Task for %s",
-                 is_today ? "Today"
-                 : TextFormat("%d/%d/%d", last_pressed_day.date.day,
-                              last_pressed_day.date.month,
-                              last_pressed_day.date.year));
+void draw_menu(int text_size, BUTTON* close_button) {
+    // Day Schedule Box
+    DrawRectangle(GetScreenWidth() / 4,
+                  (GetScreenHeight() + 2 * TOP_BAR_HEIGHT) / 4,
+                  GetScreenWidth() / 2, GetScreenHeight() / 2, ACCENT_COLOR1);
+    char str[40];
+    snprintf(str, 40, "Task for %s",
+             is_today ? "Today"
+             : TextFormat("%d/%d/%d", last_pressed_day.date.day,
+                          last_pressed_day.date.month,
+                          last_pressed_day.date.year));
 
-        // Draw a close button
-        int close_button_size = 15;
-        int close_button_x = GetScreenWidth() / 4 + GetScreenWidth() / 2 - close_button_size - 10;
-        int close_button_y = (GetScreenHeight() + 2 * TOP_BAR_HEIGHT) / 4 + 10;
-        DrawRectangle(close_button_x, close_button_y, close_button_size, close_button_size, BG_COLOR1);
-        DrawLine(close_button_x, close_button_y, close_button_x + close_button_size, close_button_y + close_button_size, ACCENT_COLOR2);
-        DrawLine(close_button_x + close_button_size, close_button_y, close_button_x, close_button_y + close_button_size, ACCENT_COLOR2);
-        if (BUTTON_RELEASED == test_button(close_button_x, close_button_y, close_button_size, close_button_size, MOUSE_BUTTON_LEFT)) {
-            is_menu_visible = 0;
-        }
+    // Draw a close button
+    close_button->size = 15;
+    close_button->x = GetScreenWidth() / 4 + GetScreenWidth() / 2 - close_button->size - 10;
+    close_button->y = (GetScreenHeight() + 2 * TOP_BAR_HEIGHT) / 4 + 10;
+    DrawRectangle(close_button->x, close_button->y, close_button->size, close_button->size, BG_COLOR1);
+    DrawLine(close_button->x, close_button->y, close_button->x + close_button->size, close_button->y + close_button->size, ACCENT_COLOR2);
+    DrawLine(close_button->x + close_button->size, close_button->y, close_button->x, close_button->y + close_button->size, ACCENT_COLOR2);
 
-        /*
+    /*
             Center a object(horizontal or vertical) in a given rectangle box
             x = X + (W-w)/2
             x -> centre position , X-> position of rectangle , W = width of rectangle , w = width of object
         */
-        int text_pos = (GetScreenWidth() / 4) +
-            (GetScreenWidth() / 2 - MeasureText(str, text_size)) / 2;
+    int text_pos = (GetScreenWidth() / 4) +
+        (GetScreenWidth() / 2 - MeasureText(str, text_size)) / 2;
 
-        DrawText(str, text_pos, (GetScreenHeight() + 2 * TOP_BAR_HEIGHT) / 4 + 10,
-                 text_size, BG_COLOR2);
+    DrawText(str, text_pos, (GetScreenHeight() + 2 * TOP_BAR_HEIGHT) / 4 + 10,
+             text_size, BG_COLOR2);
 
-        // Day Schedule Title Box
-        Rectangle title_box = {(float)GetScreenWidth() / 4 + 20,
-            (float)(GetScreenHeight() + 2 * TOP_BAR_HEIGHT) /4 + (float)GetScreenHeight() / 12,
-            (float)GetScreenWidth() / 2 - 40,
-            (float)GetScreenHeight() / 12};
-        // Rectangle dit_details_box = {
-        //             .x = GetScreenWidth() / 4 + 20,
-        //             .y = GetScreenHeight()+ 2*TOP_BAR_HEIGHT/4+GetScreenHeight()/12
-        //           };
-
-
-        DrawRectangleRec(title_box, BORDER_COLOR1);
+    // Day Schedule Title Box
+    Rectangle title_box = {(float)GetScreenWidth() / 4 + 20,
+        (float)(GetScreenHeight() + 2 * TOP_BAR_HEIGHT) /4 + (float)GetScreenHeight() / 12,
+        (float)GetScreenWidth() / 2 - 40,
+        (float)GetScreenHeight() / 12};
+    // Rectangle dit_details_box = {
+    //             .x = GetScreenWidth() / 4 + 20,
+    //             .y = GetScreenHeight()+ 2*TOP_BAR_HEIGHT/4+GetScreenHeight()/12
+    //           };
 
 
-        Vector2 title_pos = {
-            .x = (float)(GetScreenWidth()) / 4 + 20 +
-            (float)((GetScreenWidth() / 2) - 40 -
-            (MeasureText("Enter Title", text_size))) /
-            2,
-            .y = (float)(GetScreenHeight() + 2 * TOP_BAR_HEIGHT) / 4 +
-            (float)GetScreenHeight() / 12 +
-            ((float)GetScreenHeight() / 12 - text_size) / 2};
+    DrawRectangleRec(title_box, BORDER_COLOR1);
 
-        // Only draw text if there is not any input from the user yet.
-        if (title_letter_count == 0) {
-            DrawText("Enter Title", title_pos.x, title_pos.y, text_size,
-                     ColorAlpha(BG_COLOR2, 0.6));
+
+    Vector2 title_pos = {
+        .x = (float)(GetScreenWidth()) / 4 + 20 +
+        (float)((GetScreenWidth() / 2) - 40 -
+        (MeasureText("Enter Title", text_size))) /
+        2,
+        .y = (float)(GetScreenHeight() + 2 * TOP_BAR_HEIGHT) / 4 +
+        (float)GetScreenHeight() / 12 +
+        ((float)GetScreenHeight() / 12 - text_size) / 2};
+
+    // Only draw text if there is not any input from the user yet.
+    if (title_letter_count == 0) {
+        DrawText("Enter Title", title_pos.x, title_pos.y, text_size,
+                 ColorAlpha(BG_COLOR2, 0.6));
+    }
+
+    if (CheckCollisionPointRec(GetMousePosition(), title_box))
+        mouse_on_title = 1;
+    else
+        mouse_on_title = 0;
+
+    if (mouse_on_title) {
+        SetMouseCursor(MOUSE_CURSOR_IBEAM);
+
+        int key = GetCharPressed();
+        while (key > 0) {
+            // NOTE: Only allow keys in range [32..125]
+            if ((key >= 32) && (key <= 125) && (title_letter_count < SCHEDULE_TITLE_MAX_LEN)) {
+                title[title_letter_count] = (char)key;
+                title[title_letter_count + 1] = '\0';
+                title_letter_count++;
+                if (MeasureText(title, text_size) + text_size + 5 > ((int)title_box.width)) {
+                    wrap_title_index++;
+                } else {
+                    wrap_title_index = 0;
+                }
+            }
+            key = GetCharPressed();
         }
 
-        if (CheckCollisionPointRec(GetMousePosition(), title_box))
-            mouse_on_title = 1;
-        else
-            mouse_on_title = 0;
-
-        if (mouse_on_title) {
-            SetMouseCursor(MOUSE_CURSOR_IBEAM);
-
-            int key = GetCharPressed();
-            while (key > 0) {
-                // NOTE: Only allow keys in range [32..125]
-                if ((key >= 32) && (key <= 125) && (title_letter_count < SCHEDULE_TITLE_MAX_LEN)) {
-                    title[title_letter_count] = (char)key;
-                    title[title_letter_count + 1] = '\0';
-                    title_letter_count++;
-                    if (MeasureText(title, text_size) + text_size + 5 > ((int)title_box.width)) {
-                        wrap_title_index++;
-                    } else {
-                        wrap_title_index = 0;
-                    }
-                }
-                key = GetCharPressed();
+        // If backspace is pressed, delete the last character
+        if (IsKeyPressed(KEY_BACKSPACE)) {
+            wrap_title_index--;
+            if (wrap_title_index < 0 ) {
+                wrap_title_index = 0;
             }
+            title_letter_count--;
+            if (title_letter_count < 0) {
+                title_letter_count = 0;
+            }
+            title[title_letter_count] = '\0';
 
-            // If backspace is pressed, delete the last character
-            if (IsKeyPressed(KEY_BACKSPACE)) {
+            key_hold_time = 0.0f; 
+        }
+
+        // If backspace is held, delete the last character continuously
+        if (IsKeyDown(KEY_BACKSPACE)) {
+            key_hold_time += GetFrameTime();
+            if (key_hold_time >= hold_threshold) {
+
+                key_hold_time = key_hold_time - delete_interval;
+
                 wrap_title_index--;
                 if (wrap_title_index < 0 ) {
                     wrap_title_index = 0;
@@ -868,56 +896,36 @@ void draw_body(DAY today) {
                 }
                 title[title_letter_count] = '\0';
 
-                key_hold_time = 0.0f; 
             }
+        } 
 
-            // If backspace is held, delete the last character continuously
-            if (IsKeyDown(KEY_BACKSPACE)) {
-                key_hold_time += GetFrameTime();
-                if (key_hold_time >= hold_threshold) {
+        else {
+            key_hold_time = 0.0f;
+        }
 
-                    key_hold_time = key_hold_time - delete_interval;
+        if (IsKeyPressed(KEY_ENTER) && title_letter_count > 0) {
+            SCHEDULE_ITEM item = {0};
+            strcpy(item._title, title);
+            strcpy(item._description, description);
 
-                    wrap_title_index--;
-                    if (wrap_title_index < 0 ) {
-                        wrap_title_index = 0;
-                    }
-                    title_letter_count--;
-                    if (title_letter_count < 0) {
-                        title_letter_count = 0;
-                    }
-                    title[title_letter_count] = '\0';
+            item.begin_time = get_current_clock_local(); // temporary
+            // + randomize a few minutes. otherwise, all items will be on the same time, and that doesn't work
+            item.begin_time.minute += GetRandomValue(0, 59); // also, temporary :D
+            item.duration.hours = 1; // temporary
+            item.duration.minutes = 0; // temporary
 
-                }
-            } 
+            add_schedule_item(&last_pressed_day, item);
 
-            else {
-                key_hold_time = 0.0f;
-            }
+            title[0] = '\0';
+            description[0] = '\0';
+            title_letter_count = 0;
+            schedule_letter_count = 0;
+            wrap_title_index = 0;
+        }
 
-            if (IsKeyPressed(KEY_ENTER) && title_letter_count > 0) {
-                SCHEDULE_ITEM item = {0};
-                strcpy(item._title, title);
-                strcpy(item._description, description);
+    } else SetMouseCursor(MOUSE_CURSOR_DEFAULT);
 
-                item.begin_time = get_current_clock_local(); // temporary
-                // + randomize a few minutes. otherwise, all items will be on the same time, and that doesn't work
-                item.begin_time.minute += GetRandomValue(0, 59); // also, temporary :D
-                item.duration.hours = 1; // temporary
-                item.duration.minutes = 0; // temporary
-
-                add_schedule_item(&last_pressed_day, item);
-
-                title[0] = '\0';
-                description[0] = '\0';
-                title_letter_count = 0;
-                schedule_letter_count = 0;
-                wrap_title_index = 0;
-            }
-
-        } else SetMouseCursor(MOUSE_CURSOR_DEFAULT);
-
-        /**
+    /**
          * Basically, all in this 'if-statement' checks if there are any items in the schedule, and draws them, if you have the menu open.
          * Yes, is a mess.
          * 
@@ -940,133 +948,157 @@ void draw_body(DAY today) {
          * /Flameo(Flam30)
          */
 
-        if (is_day_in_list(&last_pressed_day) && !is_day_empty(&last_pressed_day)) {
-            SCHEDULE_ITEM *first_item, *second_item, *third_item;
-            int first_index, second_index, third_index = -1;
-            first_index = first_schedule_item(&last_pressed_day);
-            first_item = get_schedule_item(&last_pressed_day, first_index);
+    if (is_day_in_list(&last_pressed_day) && !is_day_empty(&last_pressed_day)) {
+        SCHEDULE_ITEM *first_item, *second_item, *third_item;
+        int first_index, second_index, third_index = -1;
+        first_index = first_schedule_item(&last_pressed_day);
+        first_item = get_schedule_item(&last_pressed_day, first_index);
 
-            second_index = has_next_schedule_item(&last_pressed_day, first_item->begin_time);
-            if (second_index != -1) {
-                second_item = get_schedule_item(&last_pressed_day, second_index);
-                third_index = has_next_schedule_item(&last_pressed_day, second_item->begin_time);
-                if (third_index != -1) {
-                    third_item = get_schedule_item(&last_pressed_day, third_index);
-                }
+        second_index = has_next_schedule_item(&last_pressed_day, first_item->begin_time);
+        if (second_index != -1) {
+            second_item = get_schedule_item(&last_pressed_day, second_index);
+            third_index = has_next_schedule_item(&last_pressed_day, second_item->begin_time);
+            if (third_index != -1) {
+                third_item = get_schedule_item(&last_pressed_day, third_index);
             }
+        }
 
-            // Calculate the y position for the items based on the title box
-            float item_start_y = title_box.y + title_box.height + 10; // 10 pixels padding
-            float button_size = 20; // Small square button size
+        // Calculate the y position for the items based on the title box
+        float item_start_y = title_box.y + title_box.height + 10; // 10 pixels padding
+        float button_size = 20; // Small square button size
 
-            // Draw the first item
-            DrawRectangleRec((Rectangle){.x = title_box.x, .y = item_start_y, .width = title_box.width, .height = title_box.height}, BORDER_COLOR1);
-            draw_centered_text(first_item->_title, title_box.x, item_start_y, title_box.width, title_box.height / 2, text_size, BG_COLOR2);
+        // Draw the first item
+        DrawRectangleRec((Rectangle){.x = title_box.x, .y = item_start_y, .width = title_box.width, .height = title_box.height}, BORDER_COLOR1);
+        draw_centered_text(first_item->_title, title_box.x, item_start_y, title_box.width, title_box.height / 2, text_size, BG_COLOR2);
 
-            // Calculate the position for the delete button in the top right corner of the first item
-            Rectangle delete_button_first = { 
+        // Calculate the position for the delete button in the top right corner of the first item
+        Rectangle delete_button_first = { 
+            title_box.x + title_box.width - BUTTON_SIZE - 5,  // X position
+            item_start_y + 5,  // Y position (5 pixels from the top)
+            BUTTON_SIZE, 
+            BUTTON_SIZE 
+        };
+
+        // Draw the delete button
+        DrawRectangleRec(delete_button_first, RED); // Draw delete button in red
+
+        // Detect if the delete button for the first item is clicked
+        if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON) && CheckCollisionPointRec(GetMousePosition(), delete_button_first)) {
+            remove_schedule_item(&last_pressed_day, first_index); // Delete the first item
+        }
+
+        // Draw the starting time and duration for the first item
+        char start_time_str[6], duration_str[10];
+        format_time(first_item->begin_time, start_time_str);
+        sprintf(duration_str, "%02d:%02d", first_item->duration.hours, first_item->duration.minutes);
+        char time_duration_str[40];
+        sprintf(time_duration_str, "Start: %s, Duration: %s", start_time_str, duration_str);
+        draw_centered_text(time_duration_str, title_box.x, item_start_y + title_box.height / 2, title_box.width, title_box.height / 2, text_size, BG_COLOR1);
+
+        // Draw the second item, if it exists
+        if (second_index != -1) {
+            float second_item_y = item_start_y + title_box.height + 10; // Position for the second item
+            DrawRectangleRec((Rectangle){.x = title_box.x, .y = second_item_y, .width = title_box.width, .height = title_box.height}, BORDER_COLOR1);
+            draw_centered_text(second_item->_title, title_box.x, second_item_y, title_box.width, title_box.height / 2, text_size, BG_COLOR2);
+
+            // Calculate the position for the delete button in the top right corner of the item
+            Rectangle delete_button_second = { 
                 title_box.x + title_box.width - BUTTON_SIZE - 5,  // X position
-                item_start_y + 5,  // Y position (5 pixels from the top)
+                second_item_y + 5,  // Y position (5 pixels from the top)
                 BUTTON_SIZE, 
                 BUTTON_SIZE 
             };
 
             // Draw the delete button
-            DrawRectangleRec(delete_button_first, RED); // Draw delete button in red
+            DrawRectangleRec(delete_button_second, RED);
 
-            // Detect if the delete button for the first item is clicked
-            if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON) && CheckCollisionPointRec(GetMousePosition(), delete_button_first)) {
-                remove_schedule_item(&last_pressed_day, first_index); // Delete the first item
+            // Detect click on the second item's delete button
+            if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON) && CheckCollisionPointRec(GetMousePosition(), delete_button_second)) {
+                remove_schedule_item(&last_pressed_day, second_index); // Delete the second item
             }
 
-            // Draw the starting time and duration for the first item
-            char start_time_str[6], duration_str[10];
-            format_time(first_item->begin_time, start_time_str);
-            sprintf(duration_str, "%02d:%02d", first_item->duration.hours, first_item->duration.minutes);
-            char time_duration_str[40];
+            // Draw the starting time and duration for the second item
+            format_time(second_item->begin_time, start_time_str);
+            sprintf(duration_str, "%02d:%02d", second_item->duration.hours, second_item->duration.minutes);
             sprintf(time_duration_str, "Start: %s, Duration: %s", start_time_str, duration_str);
-            draw_centered_text(time_duration_str, title_box.x, item_start_y + title_box.height / 2, title_box.width, title_box.height / 2, text_size, BG_COLOR1);
-
-            // Draw the second item, if it exists
-            if (second_index != -1) {
-                float second_item_y = item_start_y + title_box.height + 10; // Position for the second item
-                DrawRectangleRec((Rectangle){.x = title_box.x, .y = second_item_y, .width = title_box.width, .height = title_box.height}, BORDER_COLOR1);
-                draw_centered_text(second_item->_title, title_box.x, second_item_y, title_box.width, title_box.height / 2, text_size, BG_COLOR2);
-
-                // Calculate the position for the delete button in the top right corner of the item
-                Rectangle delete_button_second = { 
-                    title_box.x + title_box.width - BUTTON_SIZE - 5,  // X position
-                    second_item_y + 5,  // Y position (5 pixels from the top)
-                    BUTTON_SIZE, 
-                    BUTTON_SIZE 
-                };
-
-                // Draw the delete button
-                DrawRectangleRec(delete_button_second, RED);
-
-                // Detect click on the second item's delete button
-                if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON) && CheckCollisionPointRec(GetMousePosition(), delete_button_second)) {
-                    remove_schedule_item(&last_pressed_day, second_index); // Delete the second item
-                }
-
-                // Draw the starting time and duration for the second item
-                format_time(second_item->begin_time, start_time_str);
-                sprintf(duration_str, "%02d:%02d", second_item->duration.hours, second_item->duration.minutes);
-                sprintf(time_duration_str, "Start: %s, Duration: %s", start_time_str, duration_str);
-                draw_centered_text(time_duration_str, title_box.x, second_item_y + title_box.height / 2, title_box.width, title_box.height / 2, text_size, BG_COLOR1);
-            }
-
-            // Draw the third item, if it exists
-            if (third_index != -1) {
-                float third_item_y = item_start_y + 2 * (title_box.height + 10); // Position for the third item
-                DrawRectangleRec((Rectangle){.x = title_box.x, .y = third_item_y, .width = title_box.width, .height = title_box.height}, BORDER_COLOR1);
-                draw_centered_text(third_item->_title, title_box.x, third_item_y, title_box.width, title_box.height / 2, text_size, BG_COLOR2);
-
-                // Calculate the position for the delete button in the top right corner of the item
-                Rectangle delete_button_third = { 
-                    title_box.x + title_box.width - BUTTON_SIZE - 5,  // X position
-                    third_item_y + 5,  // Y position (5 pixels from the top)
-                    BUTTON_SIZE, 
-                    BUTTON_SIZE 
-                };
-
-                // Draw the delete button
-                DrawRectangleRec(delete_button_third, RED);
-
-                // Detect click on the third item's delete button
-                if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON) && CheckCollisionPointRec(GetMousePosition(), delete_button_third)) {
-                    remove_schedule_item(&last_pressed_day, third_index); // Delete the third item
-                }
-
-                // Draw the starting time and duration for the third item
-                format_time(third_item->begin_time, start_time_str);
-                sprintf(duration_str, "%02d:%02d", third_item->duration.hours, third_item->duration.minutes);
-                sprintf(time_duration_str, "Start: %s, Duration: %s", start_time_str, duration_str);
-                draw_centered_text(time_duration_str, title_box.x, third_item_y + title_box.height / 2, title_box.width, title_box.height / 2, text_size, BG_COLOR1);
-            }
+            draw_centered_text(time_duration_str, title_box.x, second_item_y + title_box.height / 2, title_box.width, title_box.height / 2, text_size, BG_COLOR1);
         }
 
-        DrawText(&title[wrap_title_index], title_box.x + 5, title_pos.y,
-                 text_size, ACCENT_COLOR2);
+        // Draw the third item, if it exists
+        if (third_index != -1) {
+            float third_item_y = item_start_y + 2 * (title_box.height + 10); // Position for the third item
+            DrawRectangleRec((Rectangle){.x = title_box.x, .y = third_item_y, .width = title_box.width, .height = title_box.height}, BORDER_COLOR1);
+            draw_centered_text(third_item->_title, title_box.x, third_item_y, title_box.width, title_box.height / 2, text_size, BG_COLOR2);
 
-        if (mouse_on_title) {
-            CLOCK_TIME now = get_current_clock_local();
-            if (title_letter_count < SCHEDULE_TITLE_MAX_LEN) {
-                if (now.second % 2 == 0) {
-                    if (wrap_title_index > 0) {
-                        DrawText("_", title_box.width + title_box.x - text_size,
-                                 title_box.y + title_box.height - text_size, text_size,
-                                 ACCENT_COLOR2);
-                    } else {
-                        DrawText("_", title_box.x + 10 + MeasureText(title, text_size),
-                                 title_box.y + title_box.height - text_size, text_size,
-                                 ACCENT_COLOR2);
-                    }
+            // Calculate the position for the delete button in the top right corner of the item
+            Rectangle delete_button_third = { 
+                title_box.x + title_box.width - BUTTON_SIZE - 5,  // X position
+                third_item_y + 5,  // Y position (5 pixels from the top)
+                BUTTON_SIZE, 
+                BUTTON_SIZE 
+            };
+
+            // Draw the delete button
+            DrawRectangleRec(delete_button_third, RED);
+
+            // Detect click on the third item's delete button
+            if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON) && CheckCollisionPointRec(GetMousePosition(), delete_button_third)) {
+                remove_schedule_item(&last_pressed_day, third_index); // Delete the third item
+            }
+
+            // Draw the starting time and duration for the third item
+            format_time(third_item->begin_time, start_time_str);
+            sprintf(duration_str, "%02d:%02d", third_item->duration.hours, third_item->duration.minutes);
+            sprintf(time_duration_str, "Start: %s, Duration: %s", start_time_str, duration_str);
+            draw_centered_text(time_duration_str, title_box.x, third_item_y + title_box.height / 2, title_box.width, title_box.height / 2, text_size, BG_COLOR1);
+        }
+    }
+
+    DrawText(&title[wrap_title_index], title_box.x + 5, title_pos.y,
+             text_size, ACCENT_COLOR2);
+
+    if (mouse_on_title) {
+        CLOCK_TIME now = get_current_clock_local();
+        if (title_letter_count < SCHEDULE_TITLE_MAX_LEN) {
+            if (now.second % 2 == 0) {
+                if (wrap_title_index > 0) {
+                    DrawText("_", title_box.width + title_box.x - text_size,
+                             title_box.y + title_box.height - text_size, text_size,
+                             ACCENT_COLOR2);
+                } else {
+                    DrawText("_", title_box.x + 10 + MeasureText(title, text_size),
+                             title_box.y + title_box.height - text_size, text_size,
+                             ACCENT_COLOR2);
                 }
             }
-        }   
-    }
-}   
+        }
+    }   
+}
+
+void draw_parrot(Texture2D tex_parrot, BUTTON* close_button) {
+    int gif_window_width = 600;
+    int gif_window_height = 600;
+    int gif_window_x = (GetScreenWidth() - gif_window_width)/2;
+    int gif_window_y = (GetScreenHeight() - gif_window_height)/2;
+
+    // Draw rectangle
+    DrawRectangle(gif_window_x, gif_window_y, gif_window_width, gif_window_height, BLUE);
+
+    // Make a close button - same as below just bigger
+    close_button->size = 40;
+    close_button->x = gif_window_x + gif_window_width - close_button->size - 10;
+    close_button->y = gif_window_y + 10;
+    DrawRectangle(close_button->x, close_button->y, close_button->size, close_button->size, BG_COLOR1);
+    DrawLine(close_button->x, close_button->y, close_button->x + close_button->size, close_button->y + close_button->size, ACCENT_COLOR2);
+    DrawLine(close_button->x + close_button->size, close_button->y, close_button->x, close_button->y + close_button->size, ACCENT_COLOR2);
+
+    // Draw animation
+    DrawTexture(tex_parrot,
+                (GetScreenWidth() - tex_parrot.width)/2,
+                (GetScreenHeight() - tex_parrot.height)/2,
+                WHITE);
+}
+//-------------------------------------VIEWS-------------------------------------//
 
 #define WIN_MIN_WIDTH (800)
 #define WIN_MIN_HEIGHT (400)
@@ -1106,19 +1138,23 @@ int main(int argc, char **argv) {
      * Update: The I made some helper functions to make the parsing easier.
      * I didn't feel like doing dynamic allocation for now.
      */
+    //-------------------------------------LOAD ASSETS-------------------------------------//
     char local_path[strlen(argv[0]) + 1]; // Always remember to leave a slot for the '\0' character
     strcpy(local_path, argv[0]);
     truncate_str_after_directory_separator(local_path);
 
-    // Click path
-    char click_path[512]; // Large enough buffer
-    parse_asset_path(click_path, local_path, "click.wav");
+    char load_buffer[512]; // Large enough buffer to store the paths, this will be reused because idkf, fuck malloc
 
-    // GIF path
-    char party_parrot_path[512];
-    parse_asset_path(party_parrot_path, local_path, "party_parrot.gif");
+    // Load click sound
+    parse_asset_path(load_buffer, local_path, "click.wav");
+    Sound click_sound = LoadSound(load_buffer);
 
-    Sound click_sound = LoadSound(click_path);
+    // Load parrot gif
+    parse_asset_path(load_buffer, local_path, "party_parrot.gif");
+    int animation_frames = 0;
+    Image img_party_parrot = LoadImageAnim(load_buffer, &animation_frames);
+    Texture2D tex_party_parrot = LoadTextureFromImage(img_party_parrot);
+    //-------------------------------------LOAD ASSETS-------------------------------------//
 
     app.use_24h_format = 1;
 
@@ -1138,56 +1174,88 @@ int main(int argc, char **argv) {
     // Code for GIF
     // Example followed from: https://www.raylib.com/examples/textures/loader.html?name=textures_gif_player
     // -------------------------------------------------------------------------------------------------------------
-
-    int animation_frames = 0;
-    Image img_party_parrot = LoadImageAnim(party_parrot_path, &animation_frames);
-    Texture2D tex_party_parrot = LoadTextureFromImage(img_party_parrot);
-
     unsigned int nextFrameDataOffset = 0;
 
     int current_anim_frame = 0;
     int frameDelay = 3;             // Smaller number, faster switching between frames
     int frameCounter = 0;
-
     // -------------------------------------------------------------------------------------------------------------
     // End of code for GIF
 
+    //-------------------------------------MAIN RENDER LOOP-------------------------------------//
     while (!WindowShouldClose()) {
-        frameCounter++;
-        // Get next frame of gif once delay has finished
-        if (frameCounter >= frameDelay)
-        {
-            current_anim_frame++;
-            // If animation reaches end, reset current frame to beginning
-            if (current_anim_frame >= animation_frames) current_anim_frame = 0;
-
-            nextFrameDataOffset = img_party_parrot.width*img_party_parrot.height*4*current_anim_frame;
-            UpdateTexture(tex_party_parrot, ((unsigned char *)img_party_parrot.data) + nextFrameDataOffset);
-
-            // Reset the delay counter
-            frameCounter = 0;
-        }
-
         BeginDrawing();
         ClearBackground(BG_COLOR1);
         draw_top_bar(&click_sound);
         draw_body(today);
 
-        // Draw animation
-        if(take_break_active) {
-            DrawTexture(tex_party_parrot,
-                        (GetScreenWidth() - tex_party_parrot.width)/2,
-                        (GetScreenHeight() - tex_party_parrot.height)/2,
-                        WHITE);
+        // Listen for events here
+
+        if (take_break_active) {
+            // LISTEN FOR BUTTON EVENTS
+            // Update the bird gif so it renders properly whenever this is active
+            frameCounter++;
+            // Get next frame of gif once delay has finished
+            if (frameCounter >= frameDelay)
+            {
+                current_anim_frame++;
+                // If animation reaches end, reset current frame to beginning
+                if (current_anim_frame >= animation_frames) current_anim_frame = 0;
+
+                nextFrameDataOffset = img_party_parrot.width*img_party_parrot.height*4*current_anim_frame;
+                UpdateTexture(tex_party_parrot, ((unsigned char *)img_party_parrot.data) + nextFrameDataOffset);
+
+                // Reset the delay counter
+                frameCounter = 0;
+            }
+
+            // Draw the corresponding frame of the gif
+            BUTTON close_button;
+            draw_parrot(tex_party_parrot, &close_button);
+
+            // LISTEN FOR BUTTON EVENTS
+            if (BUTTON_RELEASED == test_button_struct(close_button, MOUSE_BUTTON_LEFT)) {
+                take_break_active = 0;
+            }
+            // Do not open the task menu if the close button is pressed
+            if (BUTTON_RELEASED == test_button_struct(close_button, MOUSE_BUTTON_LEFT)) {
+                is_menu_visible = 0;
+            }
+            // LISTEN FOR BUTTON EVENTS
+        } else if (settings_open) {
+            BUTTON close_button;
+            draw_settings(&close_button);
+
+            // LISTEN FOR BUTTON EVENTS
+            if (BUTTON_RELEASED == test_button_struct(close_button, MOUSE_BUTTON_LEFT)) {
+                settings_open = 0;
+            }
+            // Do not open the task menu if the close button is pressed
+            if (BUTTON_RELEASED == test_button_struct(close_button, MOUSE_BUTTON_LEFT)) {
+                is_menu_visible = 0;
+            }
+            // LISTEN FOR BUTTON EVENTS
+        } else if (is_menu_visible) {
+            BUTTON close_button;
+            draw_menu(text_shit_size, &close_button);
+
+            // LISTEN FOR BUTTON EVENTS
+            if (BUTTON_RELEASED == test_button_struct(close_button, MOUSE_BUTTON_LEFT)) {
+                is_menu_visible = 0;
+            }
+            // LISTEN FOR BUTTON EVENTS
         }
 
         EndDrawing();
     }
+    //-------------------------------------MAIN RENDER LOOP-------------------------------------//
 
+    //-------------------------------------FREE RESOURCES-------------------------------------//
     UnloadTexture(tex_party_parrot);
     UnloadImage(img_party_parrot);
     CloseAudioDevice();
     CloseWindow();
+    //-------------------------------------FREE RESOURCES-------------------------------------//
 
     return 0;
 }
