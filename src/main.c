@@ -19,6 +19,10 @@
 /**
  * And now I realize that this was the biggest mistake of my life
  * - Mults
+ *
+ * There were 1208 lines in main when I started my turn. My turn is
+ * almost over, I've been only refactoring code, and somehow main
+ * gained 63 lines. I blame the comments...
  */
 
 /** KNOWN BUGS:
@@ -549,7 +553,6 @@ int find_ideal_text_size(char *text, int max_width) {
 #define MIN_DAY_MENU_HEIGHT (40)
 #define BUTTON_SIZE 20 // Small square button size
 
-
 static int is_menu_visible = 0;
 static Vector2 last_mouse_pos = {0};
 static DAY last_pressed_day = {0};
@@ -729,58 +732,54 @@ void draw_body(DAY today) {
  * - Mults
  */
 //-------------------------------------VIEWS-------------------------------------//
-void draw_settings(BUTTON* close_button) {
-    int width = GetScreenWidth();
-    int height = GetScreenHeight();
 
-    // Draw the settings window
-    int settings_window_width = 300;
-    int settings_window_height = 200;
-    int settings_window_x = width / 2 - settings_window_width / 2;
-    int settings_window_y = height / 2 - settings_window_height / 2;
-    DrawRectangle(settings_window_x, settings_window_y, settings_window_width, settings_window_height, ACCENT_COLOR1);
+void draw_settings(BUTTON* close_button) {
+    // Define a window to render this view
+    WINDOW settings_window = {
+        .width = 300,
+        .height = 200,
+        .x = GetScreenWidth() / 2 - 300 / 2,
+        .y = GetScreenHeight() / 2 - 200 / 2,
+    };
+
+    // Draw the main window
+    DrawRectangle(settings_window.x, settings_window.y, settings_window.width, settings_window.height, ACCENT_COLOR1);
+
+    // Draw the close button
+    draw_close_button(close_button, 20, settings_window);
 
     // Draw caption
     int caption_height = 30;
-    int caption_x = settings_window_x + settings_window_width / 2;
-    int caption_y = settings_window_y + 10;
+    int caption_x = settings_window.x + settings_window.width / 2;
+    int caption_y = settings_window.y + 10;
     DrawText("Settings", caption_x - MeasureText("Settings", 20) / 2, caption_y, 20, BG_COLOR1);
 
-    // Update the close button
-    close_button->size = 20;
-    close_button->x = settings_window_x + settings_window_width - close_button->size - 10;
-    close_button->y = settings_window_y + 10;
-    DrawRectangle(close_button->x, close_button->y, close_button->size, close_button->size, BG_COLOR1);
-    DrawLine(close_button->x, close_button->y, close_button->x + close_button->size, close_button->y + close_button->size, ACCENT_COLOR2);
-    DrawLine(close_button->x + close_button->size, close_button->y, close_button->x, close_button->y + close_button->size, ACCENT_COLOR2);
-
-    // Customizable distance between text and checkbox
-    int distance_between_text_and_checkbox = 10;
-
-    // Draw text and checkbox on the same horizontal plane
+    // Checkboxes
     int checkbox_size = 20;
-    int text_width = MeasureText("Clock format", 20);
-    int total_width = text_width + distance_between_text_and_checkbox + checkbox_size;
+    // Implemented a function to draw the checkbox while refactoring
+    BUTTON checkbox;
+    // Draw the checkbox
+    draw_checkbox(&checkbox, checkbox_size, settings_window, -30, "Clock format", app.use_24h_format);
 
-    int text_x = settings_window_x + (settings_window_width - total_width) / 2;
-    int text_y = caption_y + caption_height + 30; // Adjust vertical position as needed
-    DrawText("Clock format", text_x, text_y, 20, BG_COLOR1);
+    // Other test setting, feel free to use it for whatever you want
+    // NOTE: This function is being called every frame, so using a boolean that was declared in
+    // this scope, won't work because it will always be set to default.
+    BUTTON what;
+    // boolean something; - WON'T WORK
+    draw_checkbox(&what, checkbox_size, settings_window, 10, "What?", app.use_24h_format);
 
-    int checkbox_x = text_x + text_width + distance_between_text_and_checkbox;
-    int checkbox_y = text_y + (20 - checkbox_size) / 2; // Center checkbox vertically with text
-    DrawRectangle(checkbox_x, checkbox_y, checkbox_size, checkbox_size, BG_COLOR1);
-
-    if (app.use_24h_format) {
-        DrawLine(checkbox_x, checkbox_y, checkbox_x + checkbox_size, checkbox_y + checkbox_size, ACCENT_COLOR2);
-        DrawLine(checkbox_x + checkbox_size, checkbox_y, checkbox_x, checkbox_y + checkbox_size, ACCENT_COLOR2);
+    // Listen for click events, and toggle the 24-hour format
+    if (BUTTON_RELEASED == test_button_struct(checkbox, MOUSE_BUTTON_LEFT)) {
+        app.use_24h_format = !app.use_24h_format;
     }
 
-    if (BUTTON_RELEASED == test_button(checkbox_x, checkbox_y, checkbox_size, checkbox_size, MOUSE_BUTTON_LEFT)) {
-        app.use_24h_format = !app.use_24h_format;
+    if (BUTTON_RELEASED == test_button_struct(what, MOUSE_BUTTON_LEFT)) {
+        printf("What? pressed\n");
     }
 }
 
 void draw_menu(int text_size, BUTTON* close_button) {
+    // TODO: Get rid of the magic numbers
     // Day Schedule Box
     DrawRectangle(GetScreenWidth() / 4,
                   (GetScreenHeight() + 2 * TOP_BAR_HEIGHT) / 4,
@@ -792,6 +791,7 @@ void draw_menu(int text_size, BUTTON* close_button) {
                           last_pressed_day.date.month,
                           last_pressed_day.date.year));
 
+    // TODO: Add a function to add a close button
     // Draw a close button
     close_button->size = 15;
     close_button->x = GetScreenWidth() / 4 + GetScreenWidth() / 2 - close_button->size - 10;
@@ -799,6 +799,7 @@ void draw_menu(int text_size, BUTTON* close_button) {
     DrawRectangle(close_button->x, close_button->y, close_button->size, close_button->size, BG_COLOR1);
     DrawLine(close_button->x, close_button->y, close_button->x + close_button->size, close_button->y + close_button->size, ACCENT_COLOR2);
     DrawLine(close_button->x + close_button->size, close_button->y, close_button->x, close_button->y + close_button->size, ACCENT_COLOR2);
+    // END TODO
 
     /*
             Center a object(horizontal or vertical) in a given rectangle box
@@ -824,7 +825,6 @@ void draw_menu(int text_size, BUTTON* close_button) {
 
     DrawRectangleRec(title_box, BORDER_COLOR1);
 
-
     Vector2 title_pos = {
         .x = (float)(GetScreenWidth()) / 4 + 20 +
         (float)((GetScreenWidth() / 2) - 40 -
@@ -845,6 +845,11 @@ void draw_menu(int text_size, BUTTON* close_button) {
     else
         mouse_on_title = 0;
 
+    // TODO: Turn this into a function that monitors user input
+    // Also, add a possibility to change the minutes here
+    // Either that, or remove the time completely
+    // Maybe I can either add a manual time, or no time at all so
+    // it counts as a general task
     if (mouse_on_title) {
         SetMouseCursor(MOUSE_CURSOR_IBEAM);
 
@@ -923,7 +928,10 @@ void draw_menu(int text_size, BUTTON* close_button) {
             wrap_title_index = 0;
         }
 
-    } else SetMouseCursor(MOUSE_CURSOR_DEFAULT);
+    } else {
+        SetMouseCursor(MOUSE_CURSOR_DEFAULT);
+    }
+    // END TODO
 
     /**
          * Basically, all in this 'if-statement' checks if there are any items in the schedule, and draws them, if you have the menu open.
@@ -1072,25 +1080,24 @@ void draw_menu(int text_size, BUTTON* close_button) {
                 }
             }
         }
-    }   
+    }
 }
 
 void draw_parrot(Texture2D tex_parrot, BUTTON* close_button) {
-    int gif_window_width = 600;
-    int gif_window_height = 600;
-    int gif_window_x = (GetScreenWidth() - gif_window_width)/2;
-    int gif_window_y = (GetScreenHeight() - gif_window_height)/2;
+
+    // Define a window
+    WINDOW gif_window = {
+        .width = 600,
+        .height = 600,
+        .x = (GetScreenWidth() - 600)/2,
+        .y = (GetScreenHeight() - 600)/2,
+    };
 
     // Draw rectangle
-    DrawRectangle(gif_window_x, gif_window_y, gif_window_width, gif_window_height, BLUE);
+    DrawRectangle(gif_window.x, gif_window.y, gif_window.width, gif_window.height, BLUE);
 
     // Make a close button - same as below just bigger
-    close_button->size = 40;
-    close_button->x = gif_window_x + gif_window_width - close_button->size - 10;
-    close_button->y = gif_window_y + 10;
-    DrawRectangle(close_button->x, close_button->y, close_button->size, close_button->size, BG_COLOR1);
-    DrawLine(close_button->x, close_button->y, close_button->x + close_button->size, close_button->y + close_button->size, ACCENT_COLOR2);
-    DrawLine(close_button->x + close_button->size, close_button->y, close_button->x, close_button->y + close_button->size, ACCENT_COLOR2);
+    draw_close_button(close_button, 40, gif_window);
 
     // Draw animation
     DrawTexture(tex_parrot,
@@ -1156,6 +1163,7 @@ int main(int argc, char **argv) {
     Texture2D tex_party_parrot = LoadTextureFromImage(img_party_parrot);
     //-------------------------------------LOAD ASSETS-------------------------------------//
 
+    //-------------------------------------APP CONFIG-------------------------------------//
     app.use_24h_format = 1;
 
     DAY today = get_today_local();
@@ -1170,6 +1178,8 @@ int main(int argc, char **argv) {
     }
     validate_day(&app.view_first);
     printf("First Monday: %d/%d/%d\n", app.view_first.date.day, app.view_first.date.month, app.view_first.date.year);
+
+    //-------------------------------------APP CONFIG-------------------------------------//
 
     // Code for GIF
     // Example followed from: https://www.raylib.com/examples/textures/loader.html?name=textures_gif_player
