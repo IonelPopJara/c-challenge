@@ -5,16 +5,16 @@
 void validate_day(DAY *value) {
     time_t raw_time;
     struct tm *timespec;
-    
+
     time(&raw_time);
     timespec = localtime(&raw_time);
-    
+
     timespec->tm_mday = value->date.day;
     timespec->tm_mon = value->date.month - 1;
     timespec->tm_year = value->date.year - 1900;
-    
+
     mktime(timespec);
-    
+
     value->date.day = timespec->tm_mday;
     value->date.month = timespec->tm_mon + 1; // Month since january + 1
     value->date.year = timespec->tm_year + 1900; // Years since 1900 + 1900
@@ -75,7 +75,7 @@ CLOCK_TIME get_current_clock_local(void) {
 
     time(&raw_time);
     timespec = localtime(&raw_time);
-    
+
     ret.hour = timespec->tm_hour;
     ret.minute = timespec->tm_min;
     ret.second = timespec->tm_sec;
