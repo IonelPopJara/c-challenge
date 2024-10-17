@@ -9,6 +9,12 @@
 #include "dyn_array.h"
 #include "raylib.h"
 
+typedef struct button {
+    int x;
+    int y;
+    int size;
+} BUTTON;
+
 typedef enum button_state {
     BUTTON_NORMAL = 0,
     BUTTON_HOVER,
@@ -17,6 +23,8 @@ typedef enum button_state {
 } BUTTON_STATE;
 
 BUTTON_STATE test_button(int x, int y, int w, int h, MouseButton mouse_button);
+
+BUTTON_STATE test_button_struct(BUTTON button, MouseButton mouse_button);
 
 // NOTE(Tuhkis): I prefer `int` over `_Bool` because `_Bool` introduces secret extra behviour with some compileres.
 int process_text_input(int focused, char* buffer, int writeable_length, int x, int y, int font_size);

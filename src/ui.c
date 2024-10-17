@@ -19,13 +19,24 @@ BUTTON_STATE test_button(int x, int y, int w, int h,MouseButton mouse_button) {
     return CheckCollisionPointRec(GetMousePosition(), (Rectangle) {x, y, w, h}) ? (IsMouseButtonReleased(mouse_button) ? BUTTON_RELEASED : (IsMouseButtonDown(mouse_button) ? BUTTON_PRESSED : BUTTON_HOVER)) : BUTTON_NORMAL;
 }
 
+/**
+ * I read that there was a way of achieving overloading in C, but I'm too lazy for that so here's
+ * the same function as a bove with a slightly different name.
+ *
+ * - Mults
+ */
+BUTTON_STATE test_button_struct(BUTTON button, MouseButton mouse_button) {
+    // I just copied Tuhkis' cursed one-liner
+    return CheckCollisionPointRec(GetMousePosition(), (Rectangle) {button.x, button.y, button.size, button.size}) ? (IsMouseButtonReleased(mouse_button) ? BUTTON_RELEASED : (IsMouseButtonDown(mouse_button) ? BUTTON_PRESSED : BUTTON_HOVER)) : BUTTON_NORMAL;
+}
+
 int process_text_input(int focused, char* buffer, int writeable_length, int x, int y, int font_size) {
-  if (focused) {
-  }
-  else {
-    
-  }
-  return 0;
+    if (focused) {
+    }
+    else {
+
+    }
+    return 0;
 }
 
 int is_any_key_pressed() {
