@@ -114,7 +114,7 @@
 // THIS IS PUBLICLY ACCESSED. DO NOT ACCESS FROM THREADS IF YOU DON't KNOW WHAT
 // YOU'RE DOING
 APP_STATE app = {0};
-bool show_welcome_message = true;  // for the welcome message
+int show_welcome_message = 1;  // for the welcome message
 
 void snap_focus_to_1st_of_month() {
   if (app.view_first.date.day > 3 * DAYS_IN_WEEK) {
@@ -218,11 +218,11 @@ void home_button(Sound* click_sound) {
 
   // Draw house roof
   DrawTriangle(
-      (Vector2){center_x - (int)(house_base_width / 2),
-                center_y - (int)(house_base_height / 2)},
-      (Vector2){center_x + (int)(house_base_width / 2),
-                center_y - (int)(house_base_height / 2)},
-      (Vector2){center_x, center_y - (int)(house_base_height / 2) - roof_height},
+      (Vector2){center_x - house_base_width / 2.,
+                center_y - house_base_height / 2.},
+      (Vector2){center_x + house_base_width / 2.,
+                center_y - house_base_height / 2.},
+      (Vector2){center_x, center_y - house_base_height / 2. - roof_height},
       BG_COLOR1);
 }
 
@@ -302,7 +302,7 @@ void arrows_buttons(Sound* click_sound) {
   t1_v2.y = TOP_BAR_PADDING + ARROW_PADDING;
   Vector2 t1_v3;
   t1_v3.x = ARROW_X_POS + ARROW_PADDING;
-  t1_v3.y = (int)(TOP_BAR_HEIGHT / 2);
+  t1_v3.y = TOP_BAR_HEIGHT / 2.;
 
   // Arrow pointing left
   DrawTriangle(t1_v1, t1_v2, t1_v3, BG_COLOR1);
@@ -340,7 +340,7 @@ void arrows_buttons(Sound* click_sound) {
   Vector2 t2_v3 = t1_v3;
   t2_v3.x = ARROW_X_POS + 2 * ARROW_BOX_WIDTH + SELECT_VIEW_ICON_PADDING_OUT -
             ARROW_PADDING;
-  t2_v3.y = (int)(TOP_BAR_HEIGHT / 2);
+  t2_v3.y = TOP_BAR_HEIGHT / 2.;
 
   // Arrow pointing right
   DrawTriangle(t2_v1, t2_v2, t2_v3, BG_COLOR1);
@@ -453,15 +453,19 @@ static int take_break_active = 0;
  * It takes you to a different tab where you can forget your worries (tasks) and
  * watch a bird dance.
  */
-void take_break_button(Sound* click_sound) {
+void take_break_button(Sound* click_sound, Music *music) {
   DrawRectangle(TAKE_BREAK_X_POS, TAKE_BREAK_Y_POS, TAKE_BREAK_WIDTH,
                 TOP_BAR_HEIGHT - 2 * TOP_BAR_PADDING, ACCENT_COLOR2);
   if (BUTTON_RELEASED ==
       test_button(TAKE_BREAK_X_POS, TAKE_BREAK_Y_POS, TAKE_BREAK_WIDTH,
-                  TOP_BAR_HEIGHT - 2 * TOP_BAR_PADDING, MOUSE_BUTTON_LEFT)) {
+                  TOP_BAR_HEIGHT - 2 * TOP_BAR_PADDING, MOUSE_BUTTON_LEFT) && !show_welcome_message) {
     PlaySound(*click_sound);
     take_break_active = !take_break_active;
-    settings_open = !settings_open;
+    if (take_break_active) {
+      PlayMusicStream(*music);
+    } else {
+      //StopMusicStream(*music);
+    }
   }
   char* take_break_text = "Take a break!";
   int take_break_font_size = 24;
@@ -569,13 +573,13 @@ const char* MONTH_NAMES_FULL[] = {
  * It contains the home, view, arrows, settings button and the time label.
  * It also contains the current month and year.
  */
-void draw_top_bar(Sound* click_sound) {
+void draw_top_bar(Sound* click_sound, Music *music) {
   DrawRectangle(0, 0, GetScreenWidth(), TOP_BAR_HEIGHT, ACCENT_COLOR1);
   home_button(click_sound);
   view_button(click_sound);
   arrows_buttons(click_sound);
   settings_button(click_sound);
-  take_break_button(click_sound);
+  take_break_button(click_sound, music);
   time_label(click_sound);
 
   if (app.view_type == YEAR_VIEW) {
@@ -1591,7 +1595,7 @@ void welcome_message(char* message, BUTTON *close_button) {
     It was not that difficult! - 13SHR */
   Rectangle close_rectangle = {
       welcome_window.x +
-          (int)((welcome_window.width - 100) / 2),           // Center horizontally
+          (welcome_window.width - 100) / 2.,           // Center horizontally
       welcome_window.y + welcome_window.height - 60,      // Position at the bottom
       100,                                            // Button width
       50                                             // Button height
@@ -1666,6 +1670,13 @@ int main(int argc, char** argv) {
   parse_asset_path(load_buffer, local_path, "click.wav");
   Sound click_sound = LoadSound(load_buffer);
 
+  // Load Crab rave
+  parse_asset_path(load_buffer, local_path, "crab_rave.wav");
+  Music crab_rave = LoadMusicStream(load_buffer);
+  crab_rave.looping = true;
+  PlayMusicStream(crab_rave);
+  ResumeMusicStream(crab_rave);
+
   // Load parrot gif
   parse_asset_path(load_buffer, local_path, "party_parrot.gif");
   int animation_frames = 0;
@@ -1713,7 +1724,7 @@ int main(int argc, char** argv) {
   while (!WindowShouldClose()) {
     BeginDrawing();
     ClearBackground(BG_COLOR1);
-    draw_top_bar(&click_sound);
+    draw_top_bar(&click_sound, &crab_rave);
     draw_body(today);
 
     // welcome window
@@ -1724,6 +1735,7 @@ int main(int argc, char** argv) {
       if (BUTTON_RELEASED ==
           test_button_struct(close_button, MOUSE_BUTTON_LEFT)) {
         show_welcome_message = 0;
+        //StopMusicStream(crab_rave);
       }
       // Do not open the task menu if the close button is pressed
       if (BUTTON_RELEASED ==
@@ -1731,6 +1743,8 @@ int main(int argc, char** argv) {
         is_menu_visible = 0;
       }
     } else if (take_break_active) {
+      // Go one step further in the music (yes raylib has a weird way to manage music)
+      UpdateMusicStream(crab_rave);
       // Update the bird gif so it renders properly whenever this is active
       frameCounter++;
       // Get next frame of gif once delay has finished
@@ -1795,6 +1809,8 @@ int main(int argc, char** argv) {
   //----------------------------FREE RESOURCES-----------------------------//
   UnloadTexture(tex_party_parrot);
   UnloadImage(img_party_parrot);
+  UnloadSound(click_sound);
+  UnloadMusicStream(crab_rave);
   CloseAudioDevice();
   CloseWindow();
   //----------------------------FREE RESOURCES-----------------------------//
