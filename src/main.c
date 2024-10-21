@@ -41,6 +41,14 @@
  * -------------------------------------------------------------------------------
  */
 
+/** 
+ * It took me around 4 minutes to understand that raylib is
+ * absolutely not designed for UI
+ * I don't know who decided that all buttons would be squares but
+ * that is cursed. And maybe you should be cursed too.
+ * - 13SHR
+ */
+
 /** KNOWN BUGS:
  * 1.
  * When cycling through the months, there is always a wrong pair. Meaning it
@@ -453,6 +461,7 @@ void take_break_button(Sound* click_sound) {
                   TOP_BAR_HEIGHT - 2 * TOP_BAR_PADDING, MOUSE_BUTTON_LEFT)) {
     PlaySound(*click_sound);
     take_break_active = !take_break_active;
+    settings_open = !settings_open;
   }
   char* take_break_text = "Take a break!";
   int take_break_font_size = 24;
@@ -910,12 +919,17 @@ void draw_settings(BUTTON* close_button) {
  *
  * NVM ChatGPT is dogshit, I did it myself...
  */
-#define TIME_STRING_LENGTH 9  // HH:MM (a/p)m + '/0'
+#define TIME_STRING_LENGTH 11  // HH:MM (a/p).m. + '/0'
 int parse_time(char* time_str, CLOCK_TIME* output_time) {
   int hour;
   int minutes;
   int is_pm;
   int is_military = 1;
+
+  if (strlen(time_str) == 0) {
+    printf("Invalid time: Empty string\n");
+    return -1; // Invalid time format
+  }
 
   // Check for letters, if 'p' or 'A' are present, I'm gonna assume it's
   // military time This is not correct all the time but it will have to do for
@@ -929,7 +943,7 @@ int parse_time(char* time_str, CLOCK_TIME* output_time) {
        It should also check if there are several ones but... */
     if (!is_military) {
         printf("Invalid time: Both a and p\n");
-        return -1; // Invalid time format
+        return -1;
     }
     is_military = 0;
     is_pm = 0;
@@ -941,10 +955,10 @@ int parse_time(char* time_str, CLOCK_TIME* output_time) {
   for (int i = 0; i < strlen(time_str); i++) {
     if (time_str[i] != ' ' && time_str[i] != ':' && time_str[i] != 'p' &&
         time_str[i] != 'P' && time_str[i] != 'm' && time_str[i] != 'a' &&
-        time_str[i] != 'A' &&
+        time_str[i] != 'A' && time_str[i] != '.' &&
         !(time_str[i] >= '0' && time_str[i] <= '9')) {
 
-      printf("Invalid time: Invalid chars\n");
+      printf("Invalid time: Invalid characters\n");
       return -1;  
     }
   }
@@ -963,7 +977,7 @@ int parse_time(char* time_str, CLOCK_TIME* output_time) {
     // Check for hours
     if (token_counter == 1) {
       // Convert the token to a number, if it's not a valid hour, return -1
-      hour = atoi(tok);
+      hour = atoi(tok); // a or p alone is valid (it's a feature)
 
       if (!is_military && (hour < 0 || hour > 12)) {
         printf("Invalid time: AM/PM format with invalid hours\n");
@@ -1012,6 +1026,11 @@ int parse_time(char* time_str, CLOCK_TIME* output_time) {
 int parse_duration(char* time_str, CLOCK_TIME* output_duration) {
   int hour;
   int minutes;
+
+  if (strlen(time_str)) {
+    printf("Invalid duration: Empty input\n");
+    return -1;
+  }
 
   // Iterate through all the characters,
   // if there are any other characters besides numbers, colons, or spaces,
@@ -1273,7 +1292,7 @@ void draw_menu(int text_size, BUTTON* close_button) {
   Vector2 title_pos = {
       .x = (float)(GetScreenWidth()) / 4 + 20 +
            (((float)GetScreenWidth() / 2) - 40 -
-            (MeasureText("Task;HH:MM;Duration", text_size))) /
+            (MeasureText("Task;HH:MM (AM/PM/24H);Duration", text_size))) /
                2,
       .y = (float)(GetScreenHeight() + 2 * TOP_BAR_HEIGHT) / 4 +
            (float)GetScreenHeight() / 12 +
@@ -1552,11 +1571,8 @@ char* get_welcome_text() {
 /* an initial message for the user :3
 NOTE: it has a small bug where you will press the date that is under the welcome
 window but i REALLY cant be fucked*/
-void welcome_message(char* message) {
+void welcome_message(char* message, BUTTON *close_button) {
   // i have no idea how raylib works so im just copying what y'all did
-
-  // get the random welcome text
-
   WINDOW welcome_window = {
       .width = 1200,
       .height = 300,
@@ -1571,34 +1587,28 @@ void welcome_message(char* message) {
   /* Draw the close button in the bottom center of the window
      NOTE: Adding text to a button is way too complicated for what it should be
      so im not doing it, red should be enogh 
-     
     ------------
-     
-    I replaced the red button by a close button on top right 
-    to avoid writing text on it and ma
-    - 13SHR */
-  Rectangle closeButton = {
+    It was not that difficult! - 13SHR */
+  Rectangle close_rectangle = {
       welcome_window.x +
           (int)((welcome_window.width - 100) / 2),           // Center horizontally
       welcome_window.y + welcome_window.height - 60,      // Position at the bottom
       100,                                            // Button width
       50                                             // Button height
   };
-  DrawRectangleRec(closeButton, RED);
+  close_button->size = 75;
+  close_button->x = close_rectangle.x;
+  close_button->y = close_rectangle.y;
+  DrawRectangleRec(close_rectangle, RED);
+  DrawText("Cool!", 
+     close_rectangle.x + close_rectangle.width / 2 - 25, 
+     close_rectangle.y + close_rectangle.height/2 - 10, 
+     20, 
+     WHITE);
 
-  DrawText(message, welcome_window.x + 50, welcome_window.y + 70, 20, DARKGRAY);
-  // draw the message
-  DrawText("Welcome to hacktoberfest! here is a fact for you",
+  DrawText("Welcome to hacktoberfest! Here is a fun fact for you: ",
            welcome_window.x + 50, welcome_window.y + 50, 20, DARKGRAY);
-
-  if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) &&
-      CheckCollisionPointRec(
-          GetMousePosition(),
-          closeButton)) {  // if the close button is pressed, close the window
-    show_welcome_message = false;
-  }
-
-  // draw message
+  DrawText(message, welcome_window.x + 50, welcome_window.y + 70, 20, DARKGRAY);
 }
 
 //-------------------------------------VIEWS-------------------------------------//
@@ -1643,8 +1653,7 @@ int main(int argc, char** argv) {
    * Update: The I made some helper functions to make the parsing easier.
    * I didn't feel like doing dynamic allocation for now.
    */
-  //-------------------------------------LOAD
-  // ASSETS-------------------------------------//
+  //------------------------------LOAD ASSETS------------------------------//
   char local_path[strlen(argv[0]) +
                   1];  // Always remember to leave a slot for the '\0' character
   strcpy(local_path, argv[0]);
@@ -1662,11 +1671,9 @@ int main(int argc, char** argv) {
   int animation_frames = 0;
   Image img_party_parrot = LoadImageAnim(load_buffer, &animation_frames);
   Texture2D tex_party_parrot = LoadTextureFromImage(img_party_parrot);
-  //-------------------------------------LOAD
-  // ASSETS-------------------------------------//
+  //------------------------------LOAD ASSETS------------------------------//
 
-  //-------------------------------------APP
-  // CONFIG-------------------------------------//
+  //------------------------------APP CONFIG-------------------------------//
   app.use_24h_format = 1;
 
   DAY today = get_today_local();
@@ -1688,23 +1695,21 @@ int main(int argc, char** argv) {
 
   char* welcome_text = get_welcome_text();
 
-  //-------------------------------------APP
-  // CONFIG-------------------------------------//
+  //-------------------------------APP CONFIG------------------------------//
 
   // Code for GIF
   // Example followed from:
   // https://www.raylib.com/examples/textures/loader.html?name=textures_gif_player
-  // -------------------------------------------------------------------------------------------------------------
+  // ------------------------------------------------------------------------
   unsigned int nextFrameDataOffset = 0;
 
   int current_anim_frame = 0;
   int frameDelay = 3;  // Smaller number, faster switching between frames
   int frameCounter = 0;
-  // -------------------------------------------------------------------------------------------------------------
+  // ------------------------------------------------------------------------
   // End of code for GIF
 
-  //-------------------------------------MAIN RENDER
-  // LOOP-------------------------------------//
+  //----------------------------MAIN RENDER LOOP---------------------------//
   while (!WindowShouldClose()) {
     BeginDrawing();
     ClearBackground(BG_COLOR1);
@@ -1713,13 +1718,19 @@ int main(int argc, char** argv) {
 
     // welcome window
     if (show_welcome_message) {
-      welcome_message(welcome_text);
-    }
-
-    // Listen for events here
-
-    if (take_break_active) {
+      BUTTON close_button;
+      welcome_message(welcome_text, &close_button);
       // LISTEN FOR BUTTON EVENTS
+      if (BUTTON_RELEASED ==
+          test_button_struct(close_button, MOUSE_BUTTON_LEFT)) {
+        show_welcome_message = 0;
+      }
+      // Do not open the task menu if the close button is pressed
+      if (BUTTON_RELEASED ==
+          test_button_struct(close_button, MOUSE_BUTTON_LEFT)) {
+        is_menu_visible = 0;
+      }
+    } else if (take_break_active) {
       // Update the bird gif so it renders properly whenever this is active
       frameCounter++;
       // Get next frame of gif once delay has finished
@@ -1752,7 +1763,6 @@ int main(int argc, char** argv) {
           test_button_struct(close_button, MOUSE_BUTTON_LEFT)) {
         is_menu_visible = 0;
       }
-      // LISTEN FOR BUTTON EVENTS
     } else if (settings_open) {
       BUTTON close_button;
       draw_settings(&close_button);
@@ -1767,7 +1777,6 @@ int main(int argc, char** argv) {
           test_button_struct(close_button, MOUSE_BUTTON_LEFT)) {
         is_menu_visible = 0;
       }
-      // LISTEN FOR BUTTON EVENTS
     } else if (is_menu_visible) {
       BUTTON close_button;
       draw_menu(text_shit_size, &close_button);
@@ -1777,22 +1786,18 @@ int main(int argc, char** argv) {
           test_button_struct(close_button, MOUSE_BUTTON_LEFT)) {
         is_menu_visible = 0;
       }
-      // LISTEN FOR BUTTON EVENTS
     }
 
     EndDrawing();
   }
-  //-------------------------------------MAIN RENDER
-  // LOOP-------------------------------------//
+  //----------------------------MAIN RENDER LOOP---------------------------//
 
-  //-------------------------------------FREE
-  // RESOURCES-------------------------------------//
+  //----------------------------FREE RESOURCES-----------------------------//
   UnloadTexture(tex_party_parrot);
   UnloadImage(img_party_parrot);
   CloseAudioDevice();
   CloseWindow();
-  //-------------------------------------FREE
-  // RESOURCES-------------------------------------//
+  //----------------------------FREE RESOURCES-----------------------------//
 
   return 0;
 }
