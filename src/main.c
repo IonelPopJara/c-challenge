@@ -210,11 +210,11 @@ void home_button(Sound* click_sound) {
 
   // Draw house roof
   DrawTriangle(
-      (Vector2){center_x - house_base_width / 2,
-                center_y - house_base_height / 2},
-      (Vector2){center_x + house_base_width / 2,
-                center_y - house_base_height / 2},
-      (Vector2){center_x, center_y - house_base_height / 2 - roof_height},
+      (Vector2){center_x - (int)(house_base_width / 2),
+                center_y - (int)(house_base_height / 2)},
+      (Vector2){center_x + (int)(house_base_width / 2),
+                center_y - (int)(house_base_height / 2)},
+      (Vector2){center_x, center_y - (int)(house_base_height / 2) - roof_height},
       BG_COLOR1);
 }
 
@@ -294,7 +294,7 @@ void arrows_buttons(Sound* click_sound) {
   t1_v2.y = TOP_BAR_PADDING + ARROW_PADDING;
   Vector2 t1_v3;
   t1_v3.x = ARROW_X_POS + ARROW_PADDING;
-  t1_v3.y = TOP_BAR_HEIGHT / 2;
+  t1_v3.y = (int)(TOP_BAR_HEIGHT / 2);
 
   // Arrow pointing left
   DrawTriangle(t1_v1, t1_v2, t1_v3, BG_COLOR1);
@@ -332,7 +332,7 @@ void arrows_buttons(Sound* click_sound) {
   Vector2 t2_v3 = t1_v3;
   t2_v3.x = ARROW_X_POS + 2 * ARROW_BOX_WIDTH + SELECT_VIEW_ICON_PADDING_OUT -
             ARROW_PADDING;
-  t2_v3.y = TOP_BAR_HEIGHT / 2;
+  t2_v3.y = (int)(TOP_BAR_HEIGHT / 2);
 
   // Arrow pointing right
   DrawTriangle(t2_v1, t2_v2, t2_v3, BG_COLOR1);
@@ -910,19 +910,28 @@ void draw_settings(BUTTON* close_button) {
  *
  * NVM ChatGPT is dogshit, I did it myself...
  */
-#define TIME_STRING_LENGTH 6  // HH:MM + '/0'
+#define TIME_STRING_LENGTH 9  // HH:MM (a/p)m + '/0'
 int parse_time(char* time_str, CLOCK_TIME* output_time) {
   int hour;
   int minutes;
   int is_pm;
+  int is_military = 1;
 
   // Check for letters, if 'p' or 'A' are present, I'm gonna assume it's
   // military time This is not correct all the time but it will have to do for
   // now
   if (strstr(time_str, "p") || strstr(time_str, "P")) {
+    is_military = 0;
     is_pm = 1;
   }
   if (strstr(time_str, "a") || strstr(time_str, "A")) {
+    /* Checks if there are both A and P in the input time
+       It should also check if there are several ones but... */
+    if (!is_military) {
+        printf("Invalid time: Both a and p\n");
+        return -1; // Invalid time format
+    }
+    is_military = 0;
     is_pm = 0;
   }
 
@@ -931,9 +940,12 @@ int parse_time(char* time_str, CLOCK_TIME* output_time) {
   // return invalid
   for (int i = 0; i < strlen(time_str); i++) {
     if (time_str[i] != ' ' && time_str[i] != ':' && time_str[i] != 'p' &&
-        time_str[i] != 'm' && time_str[i] != '.' &&
+        time_str[i] != 'P' && time_str[i] != 'm' && time_str[i] != 'a' &&
+        time_str[i] != 'A' &&
         !(time_str[i] >= '0' && time_str[i] <= '9')) {
-      return -1;  // Invalid time format
+
+      printf("Invalid time: Invalid chars\n");
+      return -1;  
     }
   }
 
@@ -944,26 +956,30 @@ int parse_time(char* time_str, CLOCK_TIME* output_time) {
     if (token_counter > 2) {
       // For example if we have 23:32:65 -> invalid, we don't care about seconds
       // and stuff
+      printf("Invalid time: To many colons\n");
       return -1;
     }
 
     // Check for hours
     if (token_counter == 1) {
-      // Conver the token to a number, if it's not a valid hour, return -1
+      // Convert the token to a number, if it's not a valid hour, return -1
       hour = atoi(tok);
 
-      if (is_pm && (hour < 0 || hour > 12)) {
+      if (!is_military && (hour < 0 || hour > 12)) {
+        printf("Invalid time: AM/PM format with invalid hours\n");
         return -1;
-      } else if (!is_pm && (hour < 0 || hour > 24)) {
+      } else if (is_military && (hour < 0 || hour > 24)) {
+        printf("Invalid time: Military format with invalid hours\n");
         return -1;
       }
     }
     // Check for minutes
     else if (token_counter == 2) {
-      // Conver the token to a number, if it's not a valid hour, return -1
+      // Convert the token to a number, if it's not a valid hour, return -1
       minutes = atoi(tok);
 
       if (minutes < 0 || minutes >= 60) {
+        printf("Invalid time: Invalid minutes\n");
         return -1;
       }
     }
@@ -974,11 +990,12 @@ int parse_time(char* time_str, CLOCK_TIME* output_time) {
   }
 
   free(tok);
-
-  if (is_pm && hour != 12) {
-    hour += 12;  // Convert P.M. to 24-hour format
-  } else if (!is_pm && hour == 12) {
-    hour = 0;  // Midnight
+  if (!is_military) {
+    if (is_pm && hour != 12) {
+        hour += 12;  // Convert P.M. to 24-hour format
+    } else if (!is_pm && hour == 12) {
+        hour = 0;  // Midnight
+    }
   }
 
   output_time->hour = hour;
@@ -1551,15 +1568,21 @@ void welcome_message(char* message) {
   DrawRectangle(welcome_window.x, welcome_window.y, welcome_window.width,
                 welcome_window.height, WHITE);
 
-  // Draw the close button in the bottom center of the window
-  // NOTE: Adding text to a button is way too complicated for what it should be
-  // so im not doing it, red should be enogh
+  /* Draw the close button in the bottom center of the window
+     NOTE: Adding text to a button is way too complicated for what it should be
+     so im not doing it, red should be enogh 
+     
+    ------------
+     
+    I replaced the red button by a close button on top right 
+    to avoid writing text on it and ma
+    - 13SHR */
   Rectangle closeButton = {
       welcome_window.x +
-          (welcome_window.width - 100) / 2,           // Center horizontally
-      welcome_window.y + welcome_window.height - 60,  // Position at the bottom
+          (int)((welcome_window.width - 100) / 2),           // Center horizontally
+      welcome_window.y + welcome_window.height - 60,      // Position at the bottom
       100,                                            // Button width
-      50                                              // Button height
+      50                                             // Button height
   };
   DrawRectangleRec(closeButton, RED);
 
