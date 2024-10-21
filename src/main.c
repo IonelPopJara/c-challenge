@@ -1304,7 +1304,7 @@ void draw_menu(int text_size, BUTTON* close_button) {
   // INPUT-------------------------------------//
   // Only draw text if there is not any input from the user yet.
   if (title_letter_count == 0) {
-    DrawText("Task;HH:MM;Duration", title_pos.x, title_pos.y, text_size,
+    DrawText("Task;HH:MM (am/pm/24h);Duration", title_pos.x, title_pos.y, text_size,
              ColorAlpha(BG_COLOR2, 0.6));
   }
 
@@ -1500,11 +1500,11 @@ void draw_menu(int text_size, BUTTON* close_button) {
       if (now.second % 2 == 0) {
         if (wrap_title_index > 0) {
           DrawText("_", title_box.width + title_box.x - text_size,
-                   title_box.y + title_box.height - text_size, text_size,
+                   title_box.y + (title_box.height - text_size) / 2, text_size,
                    ACCENT_COLOR2);
         } else {
           DrawText("_", title_box.x + 10 + MeasureText(title, text_size),
-                   title_box.y + title_box.height - text_size, text_size,
+                   title_box.y + (title_box.height - text_size) / 2, text_size,
                    ACCENT_COLOR2);
         }
       }
