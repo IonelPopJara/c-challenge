@@ -60,7 +60,7 @@ void add_schedule_item(DAY *day, SCHEDULE_ITEM item);
 void remove_schedule_item(DAY *day, int index);
 
 int first_schedule_item(DAY *day);
-int has_next_schedule_item(DAY *day, CLOCK_TIME current_time);
+int has_next_schedule_item(DAY *day, int previous_index);
 
 SCHEDULE_ITEM* get_schedule_item(DAY *day, int index);
 

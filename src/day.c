@@ -151,9 +151,28 @@ void add_schedule_item(DAY *day, SCHEDULE_ITEM item) {
     unsigned int key = get_key(*day);
     NODE *node = find_node(key);
 
+    /* I modified the insertion so that every
+       item is sorted, otherwise it is not possible
+       to remember correctly two items with the same
+       start time
+       - 13SHR
+    */
     if (node != NULL) {
         if (node->schedule_item_count < DAY_MAX_SCHEDULE_ITEMS) {
-            node->value[node->schedule_item_count++] = item;
+            int insert_index = 0;
+            for (int i = 0; i < node->schedule_item_count; i++) {
+                if (compare_time(node->value[i].begin_time, item.begin_time) <= 0) {
+                    insert_index = i + 1;
+                } else {
+                    break;
+                }
+            }
+            for (int i = insert_index; i < node->schedule_item_count; ++i) {
+                node->value[i + 1] = node->value[i];
+            }
+
+            node->schedule_item_count++;
+            node->value[insert_index] = item;
         }
     } else {
         NODE *new_node = malloc(sizeof(NODE));
@@ -191,40 +210,32 @@ int is_day_empty(DAY *day) {
 }
 
 /** 
- * Find the index of the first schedule item in a day
+ * As I sorted the list of items, the following functions are
+ * highly simplified (both in code and complexity)
+ * - 13SHR
+*/
+
+/**
+ * Checks if there is a first item in the day
  * @return -1 if there are no schedule items in the day
 */
 int first_schedule_item(DAY *day) {
     NODE *node = find_node(get_key(*day));
     if (node == NULL || node->schedule_item_count == 0) return -1;
 
-    int first_index = 0;
-    for (int i = 1; i < node->schedule_item_count; ++i) {
-        if (compare_time(node->value[i].begin_time, node->value[first_index].begin_time) < 0) {
-            first_index = i;
-        }
-    }
-    return first_index;
+    return 0;
 }
 
 /**
- * Find the index of the next schedule item in a day, after a given time
+ * Find the index of the next schedule item in a day, after a given item
  * @return -1 if there are no more schedule items
  *  
 */ 
-int has_next_schedule_item(DAY *day, CLOCK_TIME current_time) {
+int has_next_schedule_item(DAY *day, int previous_index) {
     NODE *node = find_node(get_key(*day));
-    if (node == NULL || node->schedule_item_count == 0) return -1;
+    if (node == NULL || node->schedule_item_count <= previous_index + 1) return -1;
 
-    int next_index = -1;
-    for (int i = 0; i < node->schedule_item_count; ++i) {
-        if (compare_time(node->value[i].begin_time, current_time) > 0) {
-            if (next_index == -1 || compare_time(node->value[i].begin_time, node->value[next_index].begin_time) < 0) {
-                next_index = i;
-            }
-        }
-    }
-    return next_index;
+    return previous_index + 1;
 }
 
 /**

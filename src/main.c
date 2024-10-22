@@ -47,7 +47,7 @@
  * I don't know who decided that all buttons would be squares but
  * that is cursed. And maybe you should be cursed too.
  * - 13SHR
- */
+**/
 
 /** KNOWN BUGS:
  * 1.
@@ -89,10 +89,6 @@
  *something;04:20pm;01:00" you add "do something", no other task is rendered :/
  *      I'm too tired to figure it out, i've been refactoring all day long.
  * 
- * 8. When you press the close button after the welcome message you will get the event creation menu because you
- * are clicking under the button as well. Maybe i shouldve fixed it but i cant be bothered so whoopsie -ssheloo
- * 8.1. The messages have a ? at the end, probably some memory thing i tried to fix it but didnt work, anyways it
- * seems kinda funnny
  **/
 
 #include "app.h"
@@ -462,9 +458,9 @@ void take_break_button(Sound* click_sound, Music *music) {
     PlaySound(*click_sound);
     take_break_active = !take_break_active;
     if (take_break_active) {
-      PlayMusicStream(*music);
+      ResumeMusicStream(*music);
     } else {
-      //StopMusicStream(*music);
+      PauseMusicStream(*music);
     }
   }
   char* take_break_text = "Take a break!";
@@ -818,7 +814,7 @@ void draw_body(DAY today) {
       for (int x = 0; x < MONTHS_IN_YEAR / rows; ++x) {
         Color outline = BORDER_COLOR2;
         Color inner = BORDER_COLOR1;
-        if (month == today.date.month) {
+        if (month == today.date.month && app.view_first.date.year == today.date.year) {
           outline = ACCENT_COLOR1;
         }
         // Draw month
@@ -899,18 +895,20 @@ void draw_settings(BUTTON* close_button) {
   // NOTE: This function is being called every frame, so using a boolean that
   // was declared in this scope, won't work because it will always be set to
   // default.
-  BUTTON what;
+  int what = 0; // Oh I now understand the comment above - 13SHR
+  BUTTON what_button;
   // boolean something; - WON'T WORK
-  draw_checkbox(&what, checkbox_size, settings_window, 10, "What?",
-                app.use_24h_format);
+  draw_checkbox(&what_button, checkbox_size, settings_window, 10, "What?",
+                what);
 
   // Listen for click events, and toggle the 24-hour format
   if (BUTTON_RELEASED == test_button_struct(checkbox, MOUSE_BUTTON_LEFT)) {
     app.use_24h_format = !app.use_24h_format;
   }
 
-  if (BUTTON_RELEASED == test_button_struct(what, MOUSE_BUTTON_LEFT)) {
+  if (BUTTON_RELEASED == test_button_struct(what_button, MOUSE_BUTTON_LEFT)) {
     printf("What? pressed\n");
+    what = (what + 1) % 2;
   }
 }
 
@@ -1031,7 +1029,7 @@ int parse_duration(char* time_str, CLOCK_TIME* output_duration) {
   int hour;
   int minutes;
 
-  if (strlen(time_str)) {
+  if (strlen(time_str) == 0) {
     printf("Invalid duration: Empty input\n");
     return -1;
   }
@@ -1152,7 +1150,7 @@ void monitor_user_input(int text_size, int title_box_width) {
     key_hold_time = 0.0f;
   }
 
-  if (IsKeyPressed(KEY_ENTER) && title_letter_count > 0) {
+  if ((IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_KP_ENTER)) && title_letter_count > 0) {
     /**
      * NOTE: The only idea I could think of was to make the user input the date
      * manually using ';' (semicolons) as separators. I'm not a UX developer.
@@ -1189,7 +1187,7 @@ void monitor_user_input(int text_size, int title_box_width) {
       if (parse_time(data[1], &output_time) == -1) {
         // Invalid time, start time is 'now'
         item.begin_time = get_current_clock_local();  // temporary
-        printf("Invalid time\n");
+        printf("Invalid time: Replaced by current time\n");
       } else {
         // Valid time
         item.begin_time = output_time;
@@ -1198,13 +1196,13 @@ void monitor_user_input(int text_size, int title_box_width) {
     } else {
       // Start time is 'now'
       item.begin_time = get_current_clock_local();  // temporary
-      printf("Invalid time\n");
+      printf("Invalid time : No data replaced by current time\n");
     }
 
     if (data[2]) {
       printf("Duration: %s\n", data[2]);
       if (parse_duration(data[2], &output_duration) == -1) {
-        printf("Default duration\n");
+        printf("Invalid duration: using default duration\n");
         // Default duration of 1 hour
         item.duration.hours = 1;
         item.duration.minutes = 0;
@@ -1214,7 +1212,7 @@ void monitor_user_input(int text_size, int title_box_width) {
         item.duration.minutes = output_duration.minute;
       }
     } else {
-      printf("Default duration\n");
+      printf("No duration data: using default duration\n");
       // Default duration of 1 hour
       item.duration.hours = 1;
       item.duration.minutes = 0;
@@ -1357,11 +1355,11 @@ void draw_menu(int text_size, BUTTON* close_button) {
     first_item = get_schedule_item(&last_pressed_day, first_index);
 
     second_index =
-        has_next_schedule_item(&last_pressed_day, first_item->begin_time);
+        has_next_schedule_item(&last_pressed_day, 0);
     if (second_index != -1) {
       second_item = get_schedule_item(&last_pressed_day, second_index);
       third_index =
-          has_next_schedule_item(&last_pressed_day, second_item->begin_time);
+          has_next_schedule_item(&last_pressed_day, 1);
       if (third_index != -1) {
         third_item = get_schedule_item(&last_pressed_day, third_index);
       }
@@ -1537,8 +1535,8 @@ void draw_parrot(Texture2D tex_parrot, BUTTON* close_button) {
 }
 
 /*This function will choose a funny welcome text from the welcome.txt file*/
-char* get_welcome_text() {
-  FILE* file = fopen("assets/welcome.txt", "r");
+char* get_welcome_text(char* filename) {
+  FILE* file = fopen(filename, "r");
   if (file == NULL) {
     return "Axolotls are cool animals!";  // placeholder in case the file is not
                                           // found
@@ -1557,16 +1555,12 @@ char* get_welcome_text() {
   rewind(file);  // go to the beginning of the file
 
   // get the chosen line
-  int current_line = 0;
-  char* welcome_text = malloc(256);
+  char* welcome_text;
 
-  while (fgets(buffer, sizeof(buffer), file) != NULL) {
-    if (current_line == random_line) {
-      welcome_text = strdup(buffer);
-      break;
-    }
-    current_line++;
+  for (int current_line = 0; current_line < random_line; current_line++) {
+    fgets(buffer, sizeof(buffer), file);
   }
+  welcome_text = strdup(buffer);
 
   fclose(file);
   return welcome_text;
@@ -1586,7 +1580,7 @@ void welcome_message(char* message, BUTTON *close_button) {
 
   // Draw the window
   DrawRectangle(welcome_window.x, welcome_window.y, welcome_window.width,
-                welcome_window.height, WHITE);
+                welcome_window.height, ACCENT_COLOR1);
 
   /* Draw the close button in the bottom center of the window
      NOTE: Adding text to a button is way too complicated for what it should be
@@ -1603,10 +1597,12 @@ void welcome_message(char* message, BUTTON *close_button) {
   close_button->size = 75;
   close_button->x = close_rectangle.x;
   close_button->y = close_rectangle.y;
-  DrawRectangleRec(close_rectangle, RED);
-  DrawText("Cool!", 
-     close_rectangle.x + close_rectangle.width / 2 - 25, 
-     close_rectangle.y + close_rectangle.height/2 - 10, 
+  DrawRectangleRec(close_rectangle, ACCENT_COLOR2);
+  draw_centered_text("Cool!", 
+     close_rectangle.x, 
+     close_rectangle.y,
+     close_rectangle.width,
+     close_rectangle.height, 
      20, 
      WHITE);
 
@@ -1670,18 +1666,23 @@ int main(int argc, char** argv) {
   parse_asset_path(load_buffer, local_path, "click.wav");
   Sound click_sound = LoadSound(load_buffer);
 
-  // Load Crab rave
+  // Load Crab Rave... the file was here so I used it - 13SHR
   parse_asset_path(load_buffer, local_path, "crab_rave.wav");
   Music crab_rave = LoadMusicStream(load_buffer);
   crab_rave.looping = true;
   PlayMusicStream(crab_rave);
-  ResumeMusicStream(crab_rave);
+  PauseMusicStream(crab_rave);
 
   // Load parrot gif
   parse_asset_path(load_buffer, local_path, "party_parrot.gif");
   int animation_frames = 0;
   Image img_party_parrot = LoadImageAnim(load_buffer, &animation_frames);
   Texture2D tex_party_parrot = LoadTextureFromImage(img_party_parrot);
+
+  // Load welcome text
+  parse_asset_path(load_buffer, local_path, "welcome.txt");
+  char* welcome_text = get_welcome_text(load_buffer);
+
   //------------------------------LOAD ASSETS------------------------------//
 
   //------------------------------APP CONFIG-------------------------------//
@@ -1703,8 +1704,6 @@ int main(int argc, char** argv) {
   validate_day(&app.view_first);
   printf("First Monday: %d/%d/%d\n", app.view_first.date.day,
          app.view_first.date.month, app.view_first.date.year);
-
-  char* welcome_text = get_welcome_text();
 
   //-------------------------------APP CONFIG------------------------------//
 
@@ -1735,7 +1734,6 @@ int main(int argc, char** argv) {
       if (BUTTON_RELEASED ==
           test_button_struct(close_button, MOUSE_BUTTON_LEFT)) {
         show_welcome_message = 0;
-        //StopMusicStream(crab_rave);
       }
       // Do not open the task menu if the close button is pressed
       if (BUTTON_RELEASED ==
@@ -1807,6 +1805,7 @@ int main(int argc, char** argv) {
   //----------------------------MAIN RENDER LOOP---------------------------//
 
   //----------------------------FREE RESOURCES-----------------------------//
+  free(welcome_text);
   UnloadTexture(tex_party_parrot);
   UnloadImage(img_party_parrot);
   UnloadSound(click_sound);
