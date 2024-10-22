@@ -59,7 +59,7 @@ int is_day_empty(DAY *day);
 void add_schedule_item(DAY *day, SCHEDULE_ITEM item);
 void remove_schedule_item(DAY *day, int index);
 
-int first_schedule_item(DAY *day);
+int first_schedule_item(DAY *day, int index);
 int has_next_schedule_item(DAY *day, int previous_index);
 
 SCHEDULE_ITEM* get_schedule_item(DAY *day, int index);

@@ -44,8 +44,7 @@
 /** 
  * It took me around 4 minutes to understand that raylib is
  * absolutely not designed for UI
- * I don't know who decided that all buttons would be squares but
- * that is cursed. And maybe you should be cursed too.
+ * Thou shall witness the suff'ring of frame-bas'd graphics
  * - 13SHR
 **/
 
@@ -88,6 +87,11 @@
  *no other task is displayed afterwards. For example, instead of adding "do
  *something;04:20pm;01:00" you add "do something", no other task is rendered :/
  *      I'm too tired to figure it out, i've been refactoring all day long.
+ * Edit: The way the scheduled items were checked did not allow next items do
+ * be properly displaid, because idk. So I added a special case when nothing
+ * is given for time and duration, but the temporary solution of taking current
+ * time is still there
+ * - 13SHR
  * 
  **/
 
@@ -97,9 +101,9 @@
 #include "raylib.h"
 #include "stdio.h"   // for printf (and now also snprintf i guess :P)
 #include "string.h"  // for strcopy and strcat
-// this is the old color scheme if ppl want to use it. it's spooky season so i
-// changed the color scheme
-/*#include "classic_style.h"*/
+/** this is the old color scheme if ppl want to use it. it's spooky season so i
+ * changed the color scheme */
+//#include "classic_style.h"*/
 #include <time.h>  // For time?? idk I'm not a clock maker
 
 #include "math.h"
@@ -744,7 +748,7 @@ void draw_body(DAY today) {
                  text_size, outline);
 
         // Draw squares equal to the number of schedule items for each day
-        if (first_schedule_item(&current) != -1) {
+        if (first_schedule_item(&current, 0) != -1) {
           int gap = 5;  // Gap between rectangles
           for (int i = 0; i < get_schedule_item_count(&current); ++i) {
             SCHEDULE_ITEM* item = get_schedule_item(&current, i);
@@ -1240,6 +1244,76 @@ void monitor_user_input(int text_size, int title_box_width) {
   }
 }
 
+#define SCROLL_PADDING_BOTTOM (10)
+#define SCROLL_PADDING_BETWEEN (10)
+#define SCROLL_BUTTON_WIDTH_RATIO (10)
+static int scroll_index = 0;
+
+// Draws the arrows in the menu_window to scroll between the items 
+void arrows_scroll(WINDOW menu_window, int nb_items) {
+    int button_width = menu_window.width / SCROLL_BUTTON_WIDTH_RATIO;
+
+    // Don't display up arrow if the top item is the first one
+    if (scroll_index) {
+        Rectangle arrow_up = {
+            menu_window.x + menu_window.width / 2. - button_width - SCROLL_PADDING_BETWEEN / 2.,
+            menu_window.y + menu_window.height * 6 / 7.,
+            button_width,
+            menu_window.height / 7. - SCROLL_PADDING_BOTTOM};
+        DrawRectangleRec(arrow_up, ACCENT_COLOR2);
+
+        // Detect if the button is clicked
+        if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON) &&
+                CheckCollisionPointRec(GetMousePosition(), arrow_up)) {
+            scroll_index--;
+        }
+
+        // The arrow itself
+        Vector2 v1;
+        v1.x = arrow_up.x + arrow_up.width / 2.;
+        v1.y = arrow_up.y + arrow_up.height / 5.;
+        Vector2 v2;
+        v2.x = arrow_up.x + arrow_up.width / 5.;
+        v2.y = arrow_up.y + arrow_up.height * 4 / 5.;
+        Vector2 v3;
+        v3.x = arrow_up.x + arrow_up.width * 4 / 5.;
+        v3.y = arrow_up.y + arrow_up.height * 4 / 5.;
+        DrawTriangle(v1, v2, v3, BG_COLOR1);
+        
+    }
+
+    // Don't display down arrow if the bottom item is the last one
+    if (scroll_index < nb_items - 3) {
+        Rectangle arrow_down = {
+            menu_window.x + menu_window.width / 2. + SCROLL_PADDING_BETWEEN / 2.,
+            menu_window.y + menu_window.height * 6 / 7.,
+            button_width,
+            menu_window.height / 7. - SCROLL_PADDING_BOTTOM};
+        DrawRectangleRec(arrow_down, ACCENT_COLOR2);
+
+        // Detect if the button is clicked
+        if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON) &&
+                CheckCollisionPointRec(GetMousePosition(), arrow_down)) {
+            scroll_index++;
+        }
+
+        // The arrow itself
+        Vector2 v1;
+        v1.x = arrow_down.x + arrow_down.width / 2.;
+        v1.y = arrow_down.y + arrow_down.height * 4 / 5.;
+        Vector2 v2;
+        v2.x = arrow_down.x + arrow_down.width / 5.;
+        v2.y = arrow_down.y + arrow_down.height / 5.; 
+        Vector2 v3;
+        v3.x = arrow_down.x + arrow_down.width * 4 / 5.;
+        v3.y = arrow_down.y + arrow_down.height / 5.;
+        printf("%f %f\n", arrow_down.y, v1.y);
+        printf("%f %f\n", arrow_down.y, v2.y);
+        printf("%f %f\n", arrow_down.y, v3.y);
+        DrawTriangle(v3, v2, v1, BG_COLOR1);
+    }
+}
+
 void draw_menu(int text_size, BUTTON* close_button) {
   //-------------------------------------DRAW MENU
   // WINDOW-------------------------------------//
@@ -1283,7 +1357,7 @@ void draw_menu(int text_size, BUTTON* close_button) {
                          (float)(GetScreenHeight() + 2 * TOP_BAR_HEIGHT) / 4 +
                              (float)GetScreenHeight() / 12,
                          (float)GetScreenWidth() / 2 - 40,
-                         (float)GetScreenHeight() / 12};
+                         (float)GetScreenHeight() / 14};
   // Rectangle dit_details_box = {
   //             .x = GetScreenWidth() / 4 + 20,
   //             .y = GetScreenHeight()+ 2*TOP_BAR_HEIGHT/4+GetScreenHeight()/12
@@ -1346,20 +1420,26 @@ void draw_menu(int text_size, BUTTON* close_button) {
    * Still a mess, good luck :)
    *
    * /Flameo(Flam30)
+   * 
+   * =================================================
+   * I added the scroll functionnality, by modifying
+   * a little bit the way we play with the NODE struct.
+   * The input-through-frames makes it horrible to use though.
+   * - 13SHR
    */
 
   if (is_day_in_list(&last_pressed_day) && !is_day_empty(&last_pressed_day)) {
     SCHEDULE_ITEM *first_item, *second_item, *third_item;
     int first_index, second_index, third_index = -1;
-    first_index = first_schedule_item(&last_pressed_day);
+    first_index = first_schedule_item(&last_pressed_day, scroll_index);
     first_item = get_schedule_item(&last_pressed_day, first_index);
 
     second_index =
-        has_next_schedule_item(&last_pressed_day, 0);
+        has_next_schedule_item(&last_pressed_day, first_index);
     if (second_index != -1) {
       second_item = get_schedule_item(&last_pressed_day, second_index);
       third_index =
-          has_next_schedule_item(&last_pressed_day, 1);
+          has_next_schedule_item(&last_pressed_day, second_index);
       if (third_index != -1) {
         third_item = get_schedule_item(&last_pressed_day, third_index);
       }
@@ -1392,9 +1472,10 @@ void draw_menu(int text_size, BUTTON* close_button) {
 
     // Detect if the delete button for the first item is clicked
     if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON) &&
-        CheckCollisionPointRec(GetMousePosition(), delete_button_first)) {
-      remove_schedule_item(&last_pressed_day,
+            CheckCollisionPointRec(GetMousePosition(), delete_button_first)) {
+        remove_schedule_item(&last_pressed_day,
                            first_index);  // Delete the first item
+        scroll_index = 0;
     }
 
     // Draw the starting time and duration for the first item
@@ -1491,6 +1572,14 @@ void draw_menu(int text_size, BUTTON* close_button) {
                          third_item_y + title_box.height / 2, title_box.width,
                          title_box.height / 2, text_size, BG_COLOR1);
     }
+
+    // Draw the scroll arrows if necessary
+    int nb_items = get_schedule_item_count(&last_pressed_day);
+    
+    if (nb_items > 3) {
+        arrows_scroll(menu_window, nb_items);
+    }
+
   }
 
   DrawText(&title[wrap_title_index], title_box.x + 5, title_pos.y, text_size,
@@ -1502,11 +1591,11 @@ void draw_menu(int text_size, BUTTON* close_button) {
       if (now.second % 2 == 0) {
         if (wrap_title_index > 0) {
           DrawText("_", title_box.width + title_box.x - text_size,
-                   title_box.y + (title_box.height - text_size) / 2, text_size,
+                   title_pos.y + text_size / 2., text_size,
                    ACCENT_COLOR2);
         } else {
           DrawText("_", title_box.x + 10 + MeasureText(title, text_size),
-                   title_box.y + (title_box.height - text_size) / 2, text_size,
+                   title_pos.y, text_size,
                    ACCENT_COLOR2);
         }
       }
@@ -1654,8 +1743,7 @@ int main(int argc, char** argv) {
    * I didn't feel like doing dynamic allocation for now.
    */
   //------------------------------LOAD ASSETS------------------------------//
-  char local_path[strlen(argv[0]) +
-                  1];  // Always remember to leave a slot for the '\0' character
+  char local_path[strlen(argv[0]) + 1];  // Always remember to leave a slot for the '\0' character
   strcpy(local_path, argv[0]);
   truncate_str_after_directory_separator(local_path);
 
@@ -1809,6 +1897,7 @@ int main(int argc, char** argv) {
   UnloadTexture(tex_party_parrot);
   UnloadImage(img_party_parrot);
   UnloadSound(click_sound);
+  StopMusicStream(crab_rave);
   UnloadMusicStream(crab_rave);
   CloseAudioDevice();
   CloseWindow();
