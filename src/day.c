@@ -216,14 +216,15 @@ int is_day_empty(DAY *day) {
 */
 
 /**
- * Checks if there is a first item in the day
+ * Checks if there is a first item in the day starting
+ * from the input index
  * @return -1 if there are no schedule items in the day
 */
-int first_schedule_item(DAY *day) {
+int first_schedule_item(DAY *day, int index) {
     NODE *node = find_node(get_key(*day));
-    if (node == NULL || node->schedule_item_count == 0) return -1;
+    if (node == NULL || node->schedule_item_count < index) return -1;
 
-    return 0;
+    return index;
 }
 
 /**
