@@ -66,10 +66,13 @@
  * Sometimes the "home" button doesn't work. Example: It is Sunday, 13th Oct and
  *clicking the home button takes you to the next week. UPDATE: Should be fixed,
  *it doesn't work on Mondays though :)
+ * UPDATE: It worked perfectly for me! - 13SHR
  *
  * 4. The start time of the tasks is randomly assigned and doesn't check if that
  *number of minutes is possible. Example: task starting at 11:64 CTRL + F: if
  *(IsKeyPressed(KEY_ENTER) && title_letter_count > 0)
+ * UPDATE: This is now fixed thanks to Mults I think, and I added the ENTER key
+ * from the numeric pad (so the ctrl + F won't work) - 13SHR
  *
  * 5. I (teo) think I managed to break the click sound when pressing buttons :(
  *          I'm not sure how to fix it, I'm sorry
@@ -87,7 +90,7 @@
  *no other task is displayed afterwards. For example, instead of adding "do
  *something;04:20pm;01:00" you add "do something", no other task is rendered :/
  *      I'm too tired to figure it out, i've been refactoring all day long.
- * Edit: The way the scheduled items were checked did not allow next items do
+ * UPDATE: The way the scheduled items were checked did not allow next items do
  * be properly displaid, because idk. So I added a special case when nothing
  * is given for time and duration, but the temporary solution of taking current
  * time is still there
@@ -1661,10 +1664,10 @@ window but i REALLY cant be fucked*/
 void welcome_message(char* message, BUTTON *close_button) {
   // i have no idea how raylib works so im just copying what y'all did
   WINDOW welcome_window = {
-      .width = 1200,
-      .height = 300,
-      .x = (GetScreenWidth() - 1200) / 2,
-      .y = (GetScreenHeight() - 300) / 2,
+      .x = GetScreenWidth() / 4,
+      .y = GetScreenHeight() / 2 - GetScreenHeight() / 16,
+      .width = GetScreenWidth() / 2,
+      .height = GetScreenHeight() / 8,
   };
 
   // Draw the window
@@ -1693,11 +1696,11 @@ void welcome_message(char* message, BUTTON *close_button) {
      close_rectangle.width,
      close_rectangle.height, 
      20, 
-     WHITE);
+     BG_COLOR1);
 
-  DrawText("Welcome to hacktoberfest! Here is a fun fact for you: ",
-           welcome_window.x + 50, welcome_window.y + 50, 20, DARKGRAY);
-  DrawText(message, welcome_window.x + 50, welcome_window.y + 70, 20, DARKGRAY);
+  draw_centered_text("Welcome to hacktoberfest! Here is a fun fact for you: ",
+           welcome_window.x, welcome_window.y, welcome_window.width, welcome_window.height / 4., 20, BG_COLOR1);
+  DrawText(message, welcome_window.x + 50, welcome_window.y + 70, 20, BG_COLOR1);
 }
 
 //-------------------------------------VIEWS-------------------------------------//
